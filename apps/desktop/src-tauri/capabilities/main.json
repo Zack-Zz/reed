@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Only the main Reed shell may read the fixed Core diagnostic endpoint.",
+  "windows": ["main"],
+  "permissions": ["core:default", "allow-core-health"]
+}

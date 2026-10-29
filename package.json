@@ -1,0 +1,50 @@
+{
+  "name": "reed-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.4.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @reed/web",
+    "dev:desktop": "npm run tauri -w @reed/desktop -- dev",
+    "dev:core": "cargo run -p reed-runtime --bin reedd --",
+    "build:core": "cargo build --locked --release -p reed-runtime --bin reedd",
+    "build:client": "npm run build -w @reed/client",
+    "build:ui": "npm run build:client && npm run build -w @reed/ui",
+    "build:shared": "npm run build:ui",
+    "build:web": "npm run build:shared && npm run build -w @reed/web",
+    "build:desktop": "npm run build:shared && npm run tauri -w @reed/desktop -- build --no-bundle",
+    "build": "npm run build:web",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "test": "npm run build:client && npm run test --workspaces --if-present",
+    "generate:contracts": "node tooling/contracts.mjs --write",
+    "check:contracts": "node tooling/contracts.mjs --check",
+    "check:boundaries": "python3 tooling/check_boundaries.py",
+    "lint:docs": "markdownlint '**/*.md' --ignore '**/node_modules/**' --ignore '**/target/**'",
+    "smoke:core": "node tooling/smoke-core.mjs",
+    "check": "npm run check:contracts && npm run typecheck && npm run check:artifacts && npm test && npm run test:boundaries && npm run check:boundaries && npm run lint:docs",
+    "build:desktop:ui": "npm run build:shared && npm run build -w @reed/desktop",
+    "test:boundaries": "python3 -m unittest discover -s tests -p test_*.py",
+    "check:artifacts": "node tooling/check_artifacts.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "@tauri-apps/cli": "2.12.4",
+    "markdownlint-cli": "0.47.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  },
+  "overrides": {
+    "run-con": "1.3.2"
+  }
+}

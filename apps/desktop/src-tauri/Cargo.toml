@@ -1,0 +1,29 @@
+[package]
+name = "reed-desktop"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+publish = false
+
+# Independent GUI build/lock: the Core workspace never resolves WebView dependencies.
+[workspace]
+resolver = "3"
+
+[lib]
+name = "reed_desktop"
+
+[build-dependencies]
+tauri-build = { version = "=2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.6", features = [] }
+reed-protocol = { path = "../../../crates/reed-protocol" }
+reqwest = { version = "=0.12.28", default-features = false }
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+tokio = { version = "=1.54.1", features = ["macros", "rt-multi-thread"] }
+
+[lints.rust]
+unsafe_code = "forbid"

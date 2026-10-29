@@ -1,0 +1,24 @@
+[package]
+name = "reed-protocol"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+type-export = ["dep:ts-rs"]
+
+[dependencies]
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[[example]]
+name = "export_types"
+required-features = ["type-export"]
+
+[lints]
+workspace = true

@@ -1,0 +1,20 @@
+{
+  "name": "@reed/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@reed/client": "0.1.0",
+    "@reed/ui": "0.1.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@tauri-apps/api": "2.12.4"
+  }
+}

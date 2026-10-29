@@ -1,0 +1,33 @@
+import type { en } from './en.js';
+
+export const zhCN: typeof en = {
+  product: 'Reed',
+  tagline: 'Many agents. One flow.',
+  language: '语言',
+  theme: '外观',
+  languages: { en: 'English', 'zh-CN': '简体中文' },
+  themes: { system: '跟随系统', light: '浅色', dark: '深色' },
+  foundation: '基础工程阶段',
+  title: '从容开始，逐步构建。',
+  introduction: '共享界面与独立 Core 的基础框架正在成形。',
+  scope: '尚未启用任务、存储或连接器。',
+  core: 'Core 连接',
+  status: '状态',
+  states: { idle: '未连接', loading: '检查中…', connected: '已连接', error: '暂不可用' },
+  refresh: '刷新状态',
+  refreshPending: '正在检查…',
+  hint: '手动刷新以检查本机 Core。本页面不会启动或停止 Core。',
+  version: 'Core 版本',
+  protocol: '协议版本',
+  mode: '模式',
+  checkedAt: '上次检查',
+  errors: {
+    timeout: '本机 Core 未在规定时间内响应，请重试。',
+    network: '无法连接本机 Core。启动 Core 后再刷新。',
+    http: 'Core 未能完成健康检查，请重试。',
+    'invalid-response': 'Core 返回了不符合约定的健康响应。',
+    'incompatible-protocol': '当前 Core 协议与此界面不兼容。',
+    cancelled: '健康检查已取消。',
+  },
+  footer: '本地优先，共享同一基础。',
+};
