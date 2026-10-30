@@ -25,7 +25,7 @@
 历史材料保留日期及来源。ai-code 中旧材料用于追溯，不再作为本工程当前操作指南。
 基础工程 smoke test 通过不代表业务 ready、四端集成或 RSC 资源验收通过。
 
-实际命令与产物见[开发／构建指南](engineering/development.zh-CN.md)。
+实际命令与产物见[开发／构建指南](engineering/development.zh-CN.md)及[共享前端开发](engineering/frontend.zh-CN.md)。
 
 集成专题：[四端适配](architecture/host-adapters.md)、[分发与市场](architecture/distribution.md)。
 

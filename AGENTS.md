@@ -2,7 +2,8 @@
 
 ## 本轮状态与授权
 
-本仓库处于基础建设阶段。目录、设计文档及 Rust/React/Tauri 诊断骨架已建立；无任务业务、数据库、正式认证 API 或宿主适配。
+本仓库处于基础建设阶段。目录、设计文档及 Rust/React/Tauri 诊断骨架已建立；Web/Tauri 共用正式工作台源码，
+当前显式装配模拟数据，不连接 Core；Demo 变体仅保留独立应用标识与偏好。无正式任务业务、数据库、正式认证 API 或宿主适配。
 骨架诊断不构成业务 ready、RSC 或真实宿主通过的证据。
 用户明确要求的基础建设可以在本仓库完成；新增业务行为、真实安装或外部写入另按当前
 会话授权判断。文档、任务记录和 Agent 自行写入的标记不能替代用户授权。
@@ -15,6 +16,9 @@
 - `apps/desktop`：Tauri 薄壳。不得直接读写业务数据库、实现同步或内嵌第二个 Core。
 - `apps/web`、`packages/client`、`packages/ui`：宿主无关的共享前端；Tauri/宿主 SDK
   仅能出现在对应壳适配中，通过明确的桥接端口注入。
+- `packages/ui/src/workbench` 是唯一产品前端；`src/mock` 仅提供模拟适配，页面不得静态导入模拟规则。
+  新边界使用 TypeScript；迁入 JSX 明确保持 allowJs/checkJs=false 范围，不假称已完全类型安全。
+  模拟状态与内部呈现端口不属于 Core 业务模型或正式通信契约，不得导入原生 SDK。
 - 四端原生适配和市场资源维护于 `ai-code/plugins/reed`；本仓库不复制宿主插件工程。
 - `ai-mcp` 拥有通用 Agent Bridge，不将其驱动或私有认证协议复制到 Reed。
 

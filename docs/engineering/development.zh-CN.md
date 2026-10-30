@@ -42,7 +42,9 @@ Desktop 单独管理 Cargo workspace 和锁文件，构建 hook 只编译自己�
 
 前端／工具命令先 `npm ci`。`npm run build` 只构建共享包和 Web，不隐式构建 Core 或 Tauri。
 Core workspace 排除 Desktop，因此 Cargo 命令不解析 GUI 依赖。
-Tauri 当前使用 `--no-bundle`，未配置签名、正式安装器图标及发行格式。
+Tauri 当前使用 `--no-bundle`，未配置签名及正式安装器发行格式。
+桌面 PNG／ICNS／ICO 图标沿用已确认的独立 R，`bundle.icon` 引用
+`apps/desktop/src-tauri/icons/` 下资源；未改动的 `icons/icon.png` 为源图，Demo 继承同一图标配置。
 
 ## 分别启动进程
 
@@ -64,6 +66,22 @@ npm run dev:web       # http://127.0.0.1:1420，固定 /core 代理
 和空能力列表，只允许 loopback 监听；不是正式认证 IPC 或业务 ready。
 Web 开发代理和 Desktop 固定 `core_health` command 传输相同 DTO。
 不开放任意 URL、进程命令、文件 API 或任务写接口。
+
+## 正式共享工作台前端
+
+工作台只维护在 `packages/ui/src/workbench`，Web 与 Desktop 显式装配独立的 `@reed/ui/mock`；
+旧 demo-ui 工程已移除。类型化装配、旧 JSX 范围、模拟存储边界和验证命令见[前端开发指南](frontend.zh-CN.md)。
+
+```sh
+npm run dev:web                  # 127.0.0.1:1420 工作台
+npm run dev:desktop:demo         # 同一正式 UI，保留预览应用身份
+npm run build:desktop:demo:ui    # 正式 Desktop 前端 -> apps/desktop/dist/
+npm test -w @reed/ui
+```
+
+Demo 构建变体保留原应用标识与存储键，没有另一份页面实现。
+两个前端也构建 diagnostics.html，保留原 FoundationApp 和健康诊断传输；模拟模式无需 Core。
+下文本机 macOS 打包命令仍可追加 `--config src-tauri/tauri.demo.conf.json`。
 
 ## 检查
 
@@ -110,3 +128,19 @@ services/reed-server 和 local/replication 子模块是未来目标路径，目�
 到云阶段才建立独立 Cargo workspace/锁、存储/迁移及发布检查，
 Core-only 构建不解析云依赖，服务不依赖 reed-runtime/Tauri。
 当前命令和基础验证仍只覆盖已建立的本机诊断工程。
+
+## 本机 macOS 应用包
+
+```sh
+npm run bundle:desktop:local
+npm run bundle:desktop:demo:local
+```
+
+两者使用同一前端，`tauri.local.conf.json` 仅配置本机 ad-hoc 签名；`-` 伪身份见
+[Tauri 官方说明](https://v2.tauri.app/distribute/sign/macos/#ad-hoc-signing)。
+不需要 Apple 账号、钥匙串证书或公证，不代表正式发布。
+生成后使用 `codesign --verify --deep --strict` 检查应用包完整性。
+
+Desktop 注入受限文件导出端口：仅允许 1 MiB 内 .json／.md／.txt 保存到 Downloads，
+独占创建并用编号避免覆盖；文件 IO 在阻塞工作线程运行，不占用 UI 线程。
+网页保留 Blob 下载。壳另处理 macOS 关闭最后一个窗口后的重开事件。

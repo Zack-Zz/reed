@@ -1,7 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "Only the main Reed shell may read the fixed Core diagnostic endpoint.",
-  "windows": ["main"],
-  "permissions": ["core:default", "allow-core-health"]
+  "description": "Only the main Reed window may read Core diagnostics and save bounded preview exports.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "allow-core-health",
+    "allow-export-preview-file"
+  ]
 }

@@ -1,0 +1,479 @@
+.configuration-page {
+  max-width: 1340px;
+}
+.configuration-heading {
+  align-items: flex-end;
+}
+.configuration-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.configuration-tabs {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.configuration-tabs > button {
+  border: 0;
+  background: none;
+  border-radius: 0;
+  padding: 12px 2px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+.configuration-tabs > button[aria-selected='true'] {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+.configuration-tabs > button > span {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--soft);
+}
+.configuration-hint {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 12px 0 18px;
+}
+.configuration-list {
+  display: grid;
+  gap: 10px;
+}
+.configuration-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+}
+.configuration-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.configuration-row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+.configuration-row h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.configuration-row p {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.configuration-row small,
+.configuration-row-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+.configuration-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.configuration-symbol {
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--blue);
+}
+.configuration-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 2px 5px;
+  font-weight: 400;
+}
+.configuration-state {
+  font-size: 10px;
+  color: var(--blue);
+}
+.configuration-state.muted {
+  color: var(--muted);
+}
+.configuration-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.configuration-actions > button,
+.configuration-step-list header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  min-height: 29px;
+  padding: 5px 9px;
+}
+.configuration-danger {
+  color: var(--danger, #c35c61);
+}
+.configuration-page button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.configuration-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 22px 8px;
+}
+.configuration-error,
+.configuration-notice {
+  font-size: 12px;
+  padding: 10px 13px;
+  border-radius: 6px;
+  line-height: 1.6;
+}
+.configuration-error {
+  color: var(--danger, #b74f56);
+  background: color-mix(in srgb, var(--danger, #b74f56) 7%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--danger, #b74f56) 23%, var(--line));
+}
+.configuration-notice {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 6%, var(--bg));
+  border: 1px solid var(--line);
+}
+.configuration-card {
+  background: var(--bg);
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.configuration-card h2,
+.configuration-step-workspace h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.configuration-basic h2 {
+  margin-bottom: 16px;
+}
+.configuration-template-fields {
+  display: grid;
+  gap: 16px;
+}
+.configuration-form-grid {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.configuration-field {
+  margin: 0;
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+}
+.configuration-field small {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.55;
+}
+.configuration-field input,
+.configuration-field textarea,
+.configuration-field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+.configuration-field textarea {
+  resize: vertical;
+  line-height: 1.7;
+  min-height: 64px;
+}
+.configuration-field input[readonly],
+.configuration-field textarea[readonly] {
+  color: var(--muted);
+}
+.configuration-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.configuration-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.configuration-checkbox input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--blue);
+}
+.configuration-editor-toolbar {
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+}
+.configuration-badges {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.configuration-editor-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.configuration-step-workspace {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.configuration-step-list {
+  border-right: 1px solid var(--line);
+  background: var(--soft);
+  padding: 15px 12px;
+}
+.configuration-step-list header,
+.configuration-step-editor header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.configuration-step-list ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.configuration-step-list li > button {
+  display: flex;
+  text-align: left;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.configuration-step-list li > button.selected {
+  border-color: var(--line);
+  background: var(--bg);
+  color: var(--blue);
+}
+.configuration-step-list li small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.configuration-step-number {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+}
+.configuration-step-editor {
+  padding: 20px 24px;
+  min-width: 0;
+}
+.configuration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: #16233750;
+  display: flex;
+  justify-content: flex-end;
+}
+.configuration-type-drawer {
+  width: min(460px, 100vw);
+  height: 100%;
+  overflow: auto;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  padding: 24px;
+  box-shadow: -12px 0 45px #11182715;
+}
+.configuration-type-drawer > header,
+.configuration-confirm > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.configuration-type-drawer h2,
+.configuration-confirm h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.configuration-type-drawer footer,
+.configuration-confirm footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+.configuration-recommendations h3 {
+  font-size: 12px;
+  margin: 2px 0 10px;
+}
+.configuration-recommendations .configuration-checkbox {
+  margin: 10px 0;
+}
+.configuration-recommendations p {
+  color: var(--muted);
+  font-size: 11px;
+}
+.configuration-confirm {
+  align-self: center;
+  width: min(470px, calc(100vw - 40px));
+  padding: 25px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: auto;
+  box-shadow: 0 18px 60px #11182725;
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+}
+.configuration-confirm > p {
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+.configuration-history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.configuration-history li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.configuration-history li small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 5px;
+}
+@media (max-width: 1050px) {
+  .configuration-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .configuration-row .configuration-actions {
+    padding-left: 0;
+  }
+  .configuration-step-workspace {
+    grid-template-columns: 205px minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .configuration-heading {
+    gap: 18px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .configuration-editor-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .configuration-step-workspace,
+  .configuration-two-columns {
+    grid-template-columns: 1fr;
+  }
+  .configuration-step-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .configuration-step-list ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .configuration-step-editor {
+    padding: 18px;
+  }
+  .configuration-row {
+    padding: 16px;
+  }
+  .configuration-type-drawer {
+    padding: 20px;
+  }
+}
+
+.configuration-page button:not(.primary):not(.text-link),
+.configuration-overlay button:not(.primary) {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 10px;
+  background: var(--bg);
+  font-size: 11px;
+}
+.configuration-page .configuration-tabs > button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 12px 2px;
+  font-size: 12px;
+}
+.configuration-page .configuration-tabs > button[aria-selected='true'] {
+  border-bottom-color: var(--blue);
+}
+.configuration-page .configuration-step-list li > button {
+  border-color: transparent;
+  background: transparent;
+}
+.configuration-page .configuration-step-list li > button.selected {
+  border-color: var(--line);
+  background: var(--bg);
+}

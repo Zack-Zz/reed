@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "demo",
+  "description": "The preview window may save bounded exports; no Core command access is granted.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "allow-export-preview-file"
+  ]
+}

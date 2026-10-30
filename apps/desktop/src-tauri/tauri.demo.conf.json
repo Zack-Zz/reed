@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Reed Demo",
+  "identifier": "dev.reed.desktop.demo",
+  "build": {
+    "beforeDevCommand": "npm run dev -- --port 1422",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1422",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Reed — Demo",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 640
+      }
+    ],
+    "security": {
+      "capabilities": [
+        "demo"
+      ]
+    }
+  }
+}

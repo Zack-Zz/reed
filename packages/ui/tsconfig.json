@@ -4,7 +4,10 @@
     "types": [
       "vitest/globals",
       "node"
-    ]
+    ],
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src",

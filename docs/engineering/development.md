@@ -48,8 +48,10 @@ artifact exports and marketplace packaging are still future work.
 Run `npm ci` before frontend/tooling commands. `npm run build` builds shared packages
 and the Web frontend only; it does not implicitly build Core or Tauri. Core Cargo
 commands do not resolve GUI dependencies because Desktop is excluded from that workspace.
-The Tauri build uses `--no-bundle`; signing, icons for installers and installer
-formats are not configured for distribution.
+The Tauri build uses `--no-bundle`; signing and installer formats are not configured
+for distribution. Desktop PNG, ICNS and ICO assets use the approved standalone R;
+`bundle.icon` references them in `apps/desktop/src-tauri/icons/`. The unchanged
+`icons/icon.png` is the source artwork. The Demo inherits the same icon configuration.
 
 ## Run each process explicitly
 
@@ -73,6 +75,25 @@ implemented**. The 60+5-second target is a future lifecycle gate, not current be
 This is not authenticated business IPC or business-ready. The Web dev proxy and
 Desktop's fixed `core_health` command are separate transports for that same DTO.
 No arbitrary URL, process command, file API or task mutation is exposed.
+
+## Shared workbench frontend
+
+The workbench is maintained once in `packages/ui/src/workbench`; Web and Desktop
+compose it with the separate `@reed/ui/mock` adapter. The old demo-ui project is removed.
+See [frontend development](frontend.md) for the typed composition, legacy JSX scope,
+mock-storage boundary and validation commands.
+
+```sh
+npm run dev:web                  # Workbench on 127.0.0.1:1420
+npm run dev:desktop:demo         # Same UI; retained preview application identity
+npm run build:desktop:demo:ui    # Official Desktop frontend -> apps/desktop/dist/
+npm test -w @reed/ui
+```
+
+The Demo build flavor retains the previous application identifier and storage keys.
+It has no separate page implementation. Both frontends also build diagnostics.html
+with the original FoundationApp and health transport. Mock mode requires no Core.
+Local macOS bundling below can still add `--config src-tauri/tauri.demo.conf.json`.
 
 ## Checks
 
@@ -125,3 +146,20 @@ No server build/deploy commands or workspace/lock changes are introduced.
 The cloud phase creates an independent Cargo workspace/lock, storage/migrations and release checks.
 Core-only builds must not resolve cloud dependencies; the server must not depend on reed-runtime/Tauri.
 Current commands and foundation evidence still cover the local diagnostic framework only.
+
+## Local macOS bundles
+
+```sh
+npm run bundle:desktop:local
+npm run bundle:desktop:demo:local
+```
+
+These build the same frontend and apply `tauri.local.conf.json` for local ad-hoc
+signing. The `-` pseudo-identity follows [Tauri's ad-hoc signing guide](https://v2.tauri.app/distribute/sign/macos/#ad-hoc-signing).
+No Apple account, keychain certificate, notarization or production release is involved.
+Use `codesign --verify --deep --strict` on the generated app to check its integrity.
+
+Desktop injects a restricted file-export port; only .json/.md/.txt content up to 1 MiB
+can be written to Downloads, with exclusive creation and collision suffixes. File IO
+runs on a blocking worker rather than the UI thread. Browser mode retains its normal
+Blob download. The shell also handles macOS reopen after the last window closes.

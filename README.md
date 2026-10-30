@@ -12,18 +12,19 @@ from requirements through design and development to verification.
 
 **Runnable engineering foundation.** The standalone Rust Core exposes only local
 health diagnostics. React provides a shared diagnostic page, and Tauri is a
-separately built optional client. There are no tasks, workflow engine, SQLite,
+separately built optional client. There are no Core-backed tasks, workflow engine, SQLite,
 provider sync, production IPC/authentication, or host plugins yet. No installable
-release is published. The earlier business interaction prototype remains in
-`ai-code/plugins/reed/`.
+release is published. The approved workbench now lives in the [formal shared UI](docs/engineering/frontend.md),
+used by both Web and Tauri with an isolated mock adapter. The original prototype
+remains in `ai-code/plugins/reed/` as historical source; it is no longer the active UI workspace.
 
 See the [consolidated documentation](docs/README.md) and
 [development/build instructions](docs/engineering/development.md).
 
 ## Product direction
 
-- Give every task an independent workflow and acceptance history.
-- Keep a personal board with To do, In progress, In review, and Done; transitions
+- Give every task its own type, lifecycle and acceptance history, with optional workflow steps.
+- Keep a personal board with To do, In progress, In review, and Done, plus completed-task archival; transitions
   into review or completion must satisfy the corresponding evidence and criteria.
 - Link conversations, branches, isolated worktrees, and versioned documents to tasks.
 - Connect multiple external sources, starting with Yunxiao, with explicit source
@@ -78,6 +79,7 @@ embedded page path remains an open feasibility item; MCP support does not settle
 | `apps/desktop/` | Optional Tauri shell and its restricted UI bridge |
 | `packages/client/` | Host-neutral TypeScript client and generated wire bindings |
 | `packages/ui/` | Shared React interactions, presentation state, styles and branding |
+| `packages/ui/src/mock/` | Explicit mock adapter and fixtures while product flows are defined |
 | `tooling/` | Future contract generation, build and distribution tooling |
 | `tests/` | Future cross-component, lifecycle, security and resource acceptance |
 | `docs/` | Current architecture, decisions and implementation sequence |
@@ -99,6 +101,7 @@ cargo build --locked --release -p reed-runtime --bin reedd
 npm ci
 npm run dev:web
 # Or: npm run dev:desktop
+# Mock desktop preview without Core: npm run dev:desktop:demo
 ```
 
 The source build pins Rust 1.89.0. Node ≥22.12 is needed for frontend/tooling only;

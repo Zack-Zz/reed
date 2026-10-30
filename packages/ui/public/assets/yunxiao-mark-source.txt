@@ -1,0 +1,5 @@
+云效工作台标识：官方标识升级图中“新”行第一个。
+Source document: https://help.aliyun.com/zh/yunxiao/product-overview/cloud-effect-platform-update-log/
+Source image: https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5830982761/p543446.png
+Source SHA-256: 070ad387bda675921edc2f26c5165ca2414ace8a1eeeaa78fa395147ac627a44
+Display: SVG image viewport 365 675 211 211 over original 2880 x 1098 source pixels. No logo paths redrawn.

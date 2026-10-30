@@ -30,7 +30,8 @@ current document; add an ADR for a changed decision and retain dated source fact
 Historical material in ai-code is provenance, not this repository's active setup guide.
 A passed framework smoke test does not satisfy business-ready, four-host or RSC gates.
 
-For actual commands and outputs, see [development/builds](engineering/development.md).
+For actual commands and outputs, see [development/builds](engineering/development.md) and
+[shared frontend development](engineering/frontend.md).
 
 Internal integration specifications: [host adapters](architecture/host-adapters.md) and [distribution](architecture/distribution.md) (Chinese).
 

@@ -43,6 +43,17 @@ def check_repository(root: Path) -> list[str]:
             if file.suffix in {".ts", ".tsx", ".js", ".jsx"}:
                 if re.search(r"(?:from\s*|import\s*(?:\(\s*)?|require\s*\()[\"']@tauri-apps/", file.read_text()):
                     issues.append(f"{file.relative_to(root)}: native SDK import in shared code")
+    workbench = root / "packages/ui/src/workbench"
+    mock_root = (root / "packages/ui/src/mock").resolve()
+    for file in workbench.rglob("*"):
+        if file.suffix not in {".ts", ".tsx", ".js", ".jsx"}:
+            continue
+        for reference in re.findall(r"(?:from\s*|import\s*(?:\(\s*)?|require\s*\()[\"']([^\"']+)", file.read_text()):
+            is_mock = reference == "@reed/ui/mock" or reference.startswith("@reed/ui/mock/")
+            if reference.startswith("."):
+                is_mock = is_mock or (file.parent / reference).resolve().is_relative_to(mock_root)
+            if is_mock:
+                issues.append(f"{file.relative_to(root)}: workbench statically imports mock implementation")
     return issues
 
 

@@ -10,17 +10,18 @@ Reed 是本地优先的 AI 编程工作台，把任务、Agent 会话、Git 分�
 ## 项目状态
 
 **可运行的工程骨架。** 独立 Rust Core 目前只提供本机健康诊断；React 提供共享
-诊断页面，Tauri 是单独构建的可选客户端。尚无任务、流程引擎、SQLite、外部同步、
-正式 IPC／认证或宿主插件，也没有公开安装发行版。旧业务交互原型仍在
-`ai-code/plugins/reed/`。
+诊断页面，Tauri 是单独构建的可选客户端。尚无 Core 任务业务、流程引擎、SQLite、外部同步、
+正式 IPC／认证或宿主插件，也没有公开安装发行版。
+已确认的工作台已迁入[正式共享前端](docs/engineering/frontend.zh-CN.md)，Web 与 Tauri 使用同一套
+页面和独立模拟适配器。原原型保留在 `ai-code/plugins/reed/` 用于追溯，后续 UI 在 Reed 内维护。
 
 先阅读[汇总设计入口](docs/README.zh-CN.md)及
 [开发／构建指南](docs/engineering/development.zh-CN.md)。
 
 ## 产品方向
 
-- 每个任务拥有独立的工作流和验收历史。
-- 个人看板包含待办、进行中、评审中、完成；进入评审或完成必须检查对应产出和条件。
+- 每个任务拥有独立类型、统一生命周期和验收历史，内部流程按需选用。
+- 个人看板包含待办、处理中、评审中、已完成；完成后可归档进历史，评审或完成检查任务产出和条件。
 - 围绕任务关联会话、分支、隔离 worktree 与有版本的文档。
 - 支持多个外部来源，首个接入云效；来源明确，映射可编辑，支持双向同步和冲突处理。
 - 可选 Tauri 独立窗口与受支持的 Code Agent 宿主复用 React 交互，支持系统／浅色／深色
@@ -70,6 +71,7 @@ Codex 第三方内嵌页面通路仍是待确认的可行性问题，不能用�
 | `apps/desktop/` | 可选 Tauri 壳及受限 UI 桥 |
 | `packages/client/` | 宿主无关的 TypeScript 客户端和生成的通信类型 |
 | `packages/ui/` | 共享 React 交互、呈现状态、样式和品牌资产 |
+| `packages/ui/src/mock/` | 产品操作流确认期间使用的显式模拟适配与样例 |
 | `tooling/` | 后续契约生成、构建与发行工具 |
 | `tests/` | 后续跨组件、生命周期、安全和资源验收 |
 | `docs/` | 当前架构、决策与实施顺序 |
@@ -90,6 +92,7 @@ cargo build --locked --release -p reed-runtime --bin reedd
 npm ci
 npm run dev:web
 # 或：npm run dev:desktop
+# 无需 Core 的桌面模拟预览：npm run dev:desktop:demo
 ```
 
 源码固定 Rust 1.89.0；仅前端／工具需要 Node ≥22.12，边界检查工具另需 Python ≥3.11。

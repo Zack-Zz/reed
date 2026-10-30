@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-export-preview-file"
+description = "Allows saving bounded preview text files in the system Downloads directory."
+commands.allow = ["export_preview_file"]

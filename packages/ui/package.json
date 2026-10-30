@@ -8,18 +8,26 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/workbench/styles.css",
+    "./foundation.css": "./src/styles.css",
+    "./mock": {
+      "types": "./dist/mock/index.d.ts",
+      "import": "./dist/mock.js"
+    },
+    "./assets/*": "./public/assets/*"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run && node --test tests/mocks/*.test.mjs"
   },
   "dependencies": {
     "@reed/client": "0.1.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "@fontsource/inter": "5.3.0",
+    "@phosphor-icons/react": "2.1.10"
   }
 }

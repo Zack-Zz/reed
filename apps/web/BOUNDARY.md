@@ -1,6 +1,8 @@
 # Web application composition — 内部边界
 
-状态：React 基础状态页装配与 Vite 开发入口已建立；仅手动查询 Core 健康，不含任务、存储、连接器或浏览器配对。Desktop 单独装配同一共享 UI。
+状态：默认入口装配 `@reed/ui` 的 WorkbenchRoot 与显式 `@reed/ui/mock` 适配，
+与 Desktop 共用同一工作台和素材。模拟草稿暂存本 origin 的 localStorage；
+`/diagnostics.html` 独立手动查询 Core 健康，不包含真实任务 API、连接器或浏览器配对。
 
 ## 责任
 
@@ -8,7 +10,7 @@
 
 ## 约束
 
-不复制业务状态机，不建立 localStorage 任务数据库，不让浏览器持有长期引导凭据；共享装配不导入 Tauri/宿主 SDK。
+不复制业务状态机；当前 localStorage 仅保存模拟草稿，正式权威任务必须交由 Core，不让浏览器持有长期引导凭据；共享装配不导入 Tauri/宿主 SDK。
 
 ## 依据
 

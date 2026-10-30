@@ -2,7 +2,7 @@
 
 [English](overview.md) | [简体中文](overview.zh-CN.md)
 
-Status: current design, 2026-10-29. A diagnostic-only framework is implemented;
+Status: current design after product-model alignment, 2026-10-30. A diagnostic-only framework is implemented;
 business, production runtime management and host integration remain unimplemented.
 Rust Core is the confirmed baseline; see [ADR-0001](../decisions/0001-independent-rust-core.md).
 
@@ -13,11 +13,15 @@ an external work item. A connector links provider facts; it does not own the loc
 workflow. Yunxiao remains authoritative for its own work items. Synchronization
 reconciles mapped fields without treating external closure as local acceptance.
 
-A task connects a workflow instance and its stage runs to agent attempts, session
-references, repositories, branches/workspaces, versioned artifacts, and acceptance
-decisions. A conversation association grants navigation, not execution authority.
-An agent finishing does not prove the stage passed. The board is a projection;
-review/completion transitions call the same guarded Core use cases as every other UI.
+All task types share To do, In progress, In review, Done and Archived. Type,
+lifecycle, execution and provider facts remain separate. No internal workflow is
+selected by default: processing, artifacts and task acceptance can belong directly
+to Task. Workflow/stage runs exist only when a template is explicitly adopted.
+A conversation association grants navigation, not execution authority; step acceptance
+or an Agent exit does not complete the whole task. Board transitions, task acceptance
+and archival call the same guarded Core use cases as every other UI.
+The [domain model](../product/domain-model.md) and [interaction baseline](../product/interaction.md)
+own these business rules. This alignment changes design documents only.
 
 ## Three extension ports
 

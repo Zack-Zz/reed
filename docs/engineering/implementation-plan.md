@@ -20,8 +20,8 @@ not a parallel CP/RFP schedule. Refinements reuse existing objects and mechanism
 | M1 Boundaries/contracts refinement / P1 | Keep three Rust crates/separate Tauri workspace; application ports/wire DTOs, generation/validation/compatibility, stable object/dataset/device scopes and replicable-data classification; authoritative product specs | Foundation; RF21 dependency counterexamples, drift and fixed version combinations; diagnostic generation is not business completion | Obsolete TS plans and duplicated host rules |
 | M2 Feasibility first / P0 | Each native surface/identity/submission/feedback/cwd; Core-only GUI bootstrap/credentials/OS lock; per-operation Yunxiao CLI probes; frozen RSC fixture | M1 minimum contract; versioned host/OS/arch/plugin/CLI positive and denial evidence; retain unknowns | Late discovery of unavailable UI, authority or provider guarantees |
 | M3 Standalone lifecycle refinement / P2/P7 | User-level discovery/start, profile writer lock, admission/drain, activities/leases, explicit stop, SQLite/migration persistence and credentials; data separated from device auth, isolated seven-step upgrade probes | M1/relevant M2 platform; foundation subcases of RF01–05/09/25; durable probe/restart/migration, not business-ready or capacity RSC acceptance | Competing backends, automatic resurrection, unsafe upgrades or Desktop-only recovery |
-| M4 Local workflow/durable operations refinement / P2 | Manual requirements–design–development–verification without a connector; task/scope/template/stage/attempt/acceptance/completion; business tables on the foundation, evidence/receipts/event/outbox; minimum manual session/repo/branch references/read-only snapshots; transactional change-capture hook and device provenance, no cloud worker | M1/M3; RF07–09/13/20/24 and W walkthroughs; a real use case across revision/occupancy/receipt recovery; business-ready/RSC01/startup acceptance begins here | Duplicate effects, conflated states and UI-dependent recovery |
-| M5 Shared interaction/consistent data / P1/P6 | Review/migrate style/assets to UI/Web; lists/personal board/right drawer/task–branch views; snapshot watermark/replay, bounded client/logs, system theme and EN/ZH settings | M1/M4; RF06/11/13/21/22; available-UI boundedness/resource probes, with four-host/Tauri RSC08/10 in M8; preserve visual/context goals | Lost updates, unbounded buffers or UI bypass |
+| M4 Local workflow/durable operations refinement / P2 | Any task type can complete the five-state lifecycle manually without a connector or workflow; task type/lifecycle/scope, optional template/steps, attempts and task acceptance/completion; business tables on the foundation, evidence/receipts/event/outbox; minimum manual session/repo/branch references/read-only snapshots; transactional change-capture hook and device provenance, no cloud worker | M1/M3; RF07–09/13/20/24 and W walkthroughs; a real use case across revision/occupancy/receipt recovery; business-ready/RSC01/startup acceptance begins here | Duplicate effects, conflated states and UI-dependent recovery |
+| M5 Shared interaction/consistent data / P1/P6 | Review/migrate style/assets to UI/Web; generic task details/type and lifecycle, lists/four-column board/right drawer/task–branch views; snapshot watermark/replay, bounded client/logs, system theme and EN/ZH settings | M1/M4; RF06/11/13/21/22; available-UI boundedness/resource probes, with four-host/Tauri RSC08/10 in M8; preserve visual/context goals | Lost updates, unbounded buffers or UI bypass |
 | M6 Native execution/workspace/document refinement / P4/P5 | DSH then ZCode; separate preparation/submission/acceptance/result/workflow acceptance; trusted sessions, exact worktree/cwd, versioned docs, multi-repo relations and owned cleanup | Relevant M2 host, M3–M5; DSH/ZCode subcases of RF08–13/23; real IDs/results, wrong-cwd denial; no external substitute for native sessions | Links become grants, preparation becomes execution, overlaps or lost user work |
 | M7 Yunxiao sync refinement / P3 | Official CLI, multiple source connections, configuration/discovery drafts, identity/mapping, canonical-object outbox, B/R/D and unknown/risk recovery | M2 operation capabilities, M4/M5; RF14–20; separately authorized test-account write/readback evidence; RSC06/09 | Duplicate effects, connector bypass and equality mistaken for request confirmation |
 | M8 Integrated delivery/acceptance / P6/P7 | Complete verified Claude/Codex paths and optional Tauri; fixed cross-repository artifacts/markets; four-host/multi-shell/upgrade/resource integration | Required four-host M2 capabilities, M3–M7; applicable RF01–26 and RSC01–06/08–10; support/provenance/evidence | Packages, mocks or one host replacing four-host proof; hidden resource costs |
@@ -52,13 +52,16 @@ Run relevant checks at every increment, not only at final acceptance.
 
 ## Product acceptance retained
 
-1. Local tasks need no Yunxiao. Stages allow manual or Agent execution; LLMs propose.
+1. Local tasks need no Yunxiao. Requirement/development/test/verification/document tasks share
+   one five-state lifecycle. No workflow is required; direct manual and optional-template paths
+   are accepted separately. LLMs propose.
    Task/execution/acceptance/delivery/sync facts differ. Scope/template changes invalidate
    affected evidence without rewriting history.
-2. The personal board supports todo/in-progress/review/done drag transitions. Review/done require
+2. The personal board supports todo/in-progress/review/done drag transitions; completed tasks can
+   be archived into history and restored to Done without restarting work. Review/done require
    current outputs and acceptance; denial keeps the card and explains gaps. A right drawer retains
    filters/scroll; switching task/branch views has no Git side effects.
-3. Documents/sessions/repositories/branches/worktrees remain traceable to task stages. Links grant
+3. Documents/sessions/repositories/branches/worktrees remain traceable to Task and optional adopted steps. Links grant
    no control. Missing/changed evidence, lost sessions and wrong cwd stay visible;
    cleanup never removes resources owned by others.
 4. External records identify their Connector/source. Configuration, detection, organization/project
@@ -74,7 +77,7 @@ Run relevant checks at every increment, not only at final acceptance.
 ## One acceptance/evidence route
 
 The [RF catalog](failure-acceptance.md) consolidates T/CT aliases; [RSC](resource-acceptance.md)
-alone owns resource fixtures/budgets; W01–W35 retain product-flow walkthrough identity.
+alone owns resource fixtures/budgets; W01–W45 retain product-flow walkthrough identity.
 Reuse captures rather than writing three mirrored suites. Record versions/artifact hashes,
 fixtures, real/mock providers, steps, raw outcomes and limits.
 Report source/build/tests/persistence/real-host/Yunxiao/performance evidence separately.
@@ -131,3 +134,14 @@ Remote SDK/executor/multi-engine work retains its separate P8 proof.
 Freeze cloud identity, attachment/backup protection, deployment/recovery compatibility and enabled
 resource/network fixtures before acceptance; no unmeasured performance promise is made here.
 RF27–34 are future scenarios, not current M8 prerequisites alongside local RF01–26.
+
+## Product-alignment scope
+
+The 2026-10-30 design update keeps M1–M8 dependencies and adds no milestone. M4 owns
+the shared lifecycle and task-level acceptance. M5 subsequently aligns the existing
+four-stage mock UI while preserving shared code, visuals and existing data. Never infer
+task type from a legacy stage index or treat execution/step acceptance as task acceptance.
+Legacy data needs an explicit migration and evidence; this round does not change drafts.
+No-workflow tasks must not acquire empty StageRuns. W36–W45 add type, direct processing,
+task/step acceptance and archival coverage; old four-stage tests do not pass these cases.
+Business DTOs follow confirmed product behavior; no API/database design is added here.

@@ -27,7 +27,7 @@ Rust 协议定义是通信类型单一权威，生成 TypeScript，不手工维�
 | 传输请求 ID | 当前连接的请求/响应关联，重连可变，不是业务去重键 |
 | 稳定 requestId | 既定意图 ID，携带原接纳命名空间；profile/稳定主体内去重，重传不变；不是 serviceEpoch |
 | operationId / invocationId | 持久接纳记录 / 一次真实效果调用，见操作恢复规范 |
-| Task / StageRun / AgentAttempt | 任务、固定输入阶段轮次、一次执行，不按 RPC 或页面挂载新建 |
+| Task / StageRun / AgentAttempt | Task 可直接处理；仅实际采用内部流程时有 StageRun；Attempt 可直接归 Task 当前范围，不按 RPC/挂载新建 |
 | serviceEpoch / 绑定代际 | 区分服务和宿主实例；失效不证明旧执行已停止 |
 | recordRevision / 事件游标 | 并发写条件 / 已提交事件位置，不互换或改用客户端时钟 |
 
@@ -75,7 +75,7 @@ Core 有权管理的交互可多端展示，但一次决定经持久条件更新
 
 原生审批仍由宿主拥有；无公开回复能力时导航原宿主，不复制为任意壳可批准的弹窗。
 本契约不要求 MVP 建通用审批引擎；独立 AgentExecutor 的完整交互留后续 P8。
-模型“通过”、已读或执行授权不构成 Reed 阶段验收。
+模型“通过”、已读或执行授权不构成 Reed 任务级验收或内部步骤接受。
 
 ## 验收
 

@@ -31,6 +31,18 @@ class BoundaryTests(unittest.TestCase):
         self.write("packages/ui/src/bad.ts", 'import { invoke } from "@tauri-apps/api/core";')
         self.assertTrue(module.check_repository(self.root))
 
+    def test_workbench_mock_rejects_native_sdk_import(self):
+        self.write("packages/ui/src/mock/bad.jsx", 'import { invoke } from "@tauri-apps/api/core";')
+        self.assertTrue(module.check_repository(self.root))
+
+    def test_workbench_rejects_static_mock_dependency(self):
+        self.write("packages/ui/src/workbench/bad.tsx", "import { reduce } from '../mock/model.js';")
+        self.assertTrue(module.check_repository(self.root))
+
+    def test_shell_may_explicitly_compose_a_mock_adapter(self):
+        self.write("apps/web/src/main.tsx", "import { createMockWorkbenchRuntime } from '@reed/ui/mock';")
+        self.assertEqual(module.check_repository(self.root), [])
+
     def test_protocol_does_not_own_domain_rules(self):
         self.write("crates/reed-protocol/Cargo.toml", '[dependencies]\nreed-core = { path = "../reed-core" }\n')
         self.assertTrue(module.check_repository(self.root))
