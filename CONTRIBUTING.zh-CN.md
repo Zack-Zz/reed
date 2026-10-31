@@ -6,6 +6,9 @@ Reed 当前处于基础建设阶段。先阅读[架构](docs/architecture/overvi
 [Core 决策](docs/decisions/0001-independent-rust-core.zh-CN.md)和
 [实施顺序](docs/engineering/implementation-plan.zh-CN.md)；Agent 内部规则见 [AGENTS.md](AGENTS.md)。
 
+实施前按[开发规范](docs/engineering/standards.zh-CN.md)核对模块归属、语言对应的测试组织、TDD、验证范围和交接模板，
+同时阅读所属模块的 `BOUNDARY.md`。仓库内可选执行入口为 [reed-development](skills/reed-development/SKILL.md)。
+
 ## 当前开发准备
 
 框架已具备 Rust、npm 和可选 Tauri 构建。
@@ -38,5 +41,6 @@ Core、Desktop、共享 UI、宿主插件、协议和 schema 分别管理版本�
 真实宿主验证独立于包校验。本轮基础建设不确定发行版本、包名归属或平台支持。
 新增安装、迁移、启动或退出行为前，先阅读[本地运行方案](docs/architecture/local-runtime.zh-CN.md)。
 
-旧交互原型尚未迁移。导入资产、代码或模拟浏览器状态前，按
-[设计来源与迁移计划](docs/references/provenance.zh-CN.md)执行；保留设计，不把模拟行为升级为正式契约。
+历史原型仍保留在 ai-code；当前产品 UI 由 `packages/ui/src/workbench` 统一维护。
+导入额外资产、代码或模拟浏览器状态前，按[设计来源记录](docs/references/provenance.zh-CN.md)执行；
+保留设计，不把模拟行为升级为正式契约。

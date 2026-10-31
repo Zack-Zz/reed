@@ -11,6 +11,7 @@ Tauri Rust 2.12 要求 Rust 1.90，本轮保留本机已有 1.89，所选 JS/Rus
 
 前端工具需 Node ≥22.12 和 npm，本轮使用 Node 24.4.1／npm 11.4.2。
 可选边界门禁另需 Python ≥3.11（使用 `tomllib`），系统 Python 3.9 不适用。
+前端边界检查还通过 Node 使用 `npm ci` 安装的锁定 TypeScript；纯 Rust 清单反例不调用该解析器。
 Core 构建／运行不依赖 Node 或 Python。
 markdownlint 的辅助工具 `run-con` 固定 1.3.2，避免 ini 7 要求更高 Node 版本。
 

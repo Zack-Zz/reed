@@ -138,6 +138,7 @@ execution of every connected tool.
 
 ## Read next
 
+- [Development standards and agent handoff](docs/engineering/standards.md)
 - [Architecture and boundaries](docs/architecture/overview.md)
 - [Independent Rust Core decision](docs/decisions/0001-independent-rust-core.md)
 - [Data, security, installation and upgrades](docs/architecture/local-runtime.md)

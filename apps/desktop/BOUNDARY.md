@@ -5,4 +5,8 @@
 `/diagnostics.html` 另经固定 core_health 读取诊断；Demo 变体仅获得导出权限。
 不启动／停止 Core，不依赖 runtime/domain，不打开业务数据库。
 
+Rust 私有单测正文放 `src-tauri/src/*_tests.rs`，由实现模块通过 cfg(test)／path 加载，不扩大生产 API；
+前端适配测试继续位于本模块 `tests/`。这两种测试的编译及运行入口不同，按
+[开发规范](../../docs/engineering/standards.zh-CN.md#tdd-与测试组织)分别验证。
+
 [工程边界](../../docs/architecture/overview.zh-CN.md) · [构建指南](../../docs/engineering/development.zh-CN.md)

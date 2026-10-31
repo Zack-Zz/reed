@@ -12,7 +12,9 @@ cross-version compatibility promise. `0.1.0` is a development identifier only.
 
 Frontend tooling needs Node ≥22.12 and npm (verified locally with Node 24.4.1/npm
 11.4.2). Optional boundary gates need Python ≥3.11 (`tomllib`); Python 3.9 will not
-work. Python and Node are not Core runtime/build dependencies. The markdownlint
+work. Frontend boundary scanning also uses the locked TypeScript package through
+Node after `npm ci`; Rust-only manifest fixtures do not invoke it. Python and Node
+are not Core runtime/build dependencies. The markdownlint
 helper `run-con` is locked to 1.3.2 to avoid ini 7's newer Node requirement.
 
 Install a missing project toolchain explicitly yourself, for example

@@ -33,6 +33,10 @@ A passed framework smoke test does not satisfy business-ready, four-host or RSC 
 For actual commands and outputs, see [development/builds](engineering/development.md) and
 [shared frontend development](engineering/frontend.md).
 
+For a new assignment, start with [development standards and agent workflow](engineering/standards.md).
+The [Codex CLI / Tauri practice comparison](references/engineering-practices.md) records
+observed upstream examples and Reed's choices; it is not another rulebook.
+
 Internal integration specifications: [host adapters](architecture/host-adapters.md) and [distribution](architecture/distribution.md) (Chinese).
 
 Local implementation results: [foundation verification](engineering/foundation-verification.md) (Chinese), distinct from target acceptance.

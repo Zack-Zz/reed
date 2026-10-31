@@ -6,6 +6,11 @@ Reed is currently establishing its foundation. Start with the
 [architecture](docs/architecture/overview.md), [Core decision](docs/decisions/0001-independent-rust-core.md),
 and [roadmap](docs/engineering/implementation-plan.md). Internal Agent guidance is in [AGENTS.md](AGENTS.md).
 
+Before implementation, follow the [development standards](docs/engineering/standards.md):
+module ownership, language-specific test organization, TDD, scoped checks and the
+handoff template. Read the owning module's `BOUNDARY.md` as well. An optional
+repository-local entry is [reed-development](skills/reed-development/SKILL.md).
+
 ## Current development setup
 
 The framework now has Rust, npm and an optional Tauri build. Follow the
@@ -48,7 +53,7 @@ release version, package ownership, or platform support is established by this
 foundation. Read the [local runtime plan](docs/architecture/local-runtime.md) before adding
 installation, migration, startup, or shutdown behavior.
 
-The earlier interaction prototype has not moved. Follow the
-[provenance and migration plan](docs/references/provenance.md) before importing any assets,
-code, or simulated browser state. Preserve its design without promoting mock
-behavior into production contracts.
+The historical prototype remains in ai-code; the active product UI is shared from
+`packages/ui/src/workbench`. Follow the [provenance record](docs/references/provenance.md)
+before importing additional assets, code or simulated browser state. Preserve the
+design without promoting mock behavior into production contracts.

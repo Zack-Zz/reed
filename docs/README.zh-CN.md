@@ -27,6 +27,9 @@
 
 实际命令与产物见[开发／构建指南](engineering/development.zh-CN.md)及[共享前端开发](engineering/frontend.zh-CN.md)。
 
+接手任务先读[开发规范与 Agent 工作方式](engineering/standards.zh-CN.md)。
+[Codex CLI／Tauri 工程实践记录](references/engineering-practices.md)说明观察证据与本项目取舍，不另立一套规范。
+
 集成专题：[四端适配](architecture/host-adapters.md)、[分发与市场](architecture/distribution.md)。
 
 本轮实际结果：[基础工程验证](engineering/foundation-verification.md)，独立于目标验收。

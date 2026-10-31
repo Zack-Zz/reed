@@ -122,6 +122,7 @@ Web 开发使用固定 Vite 代理，Desktop 通过受限原生诊断桥访问�
 
 ## 文档导航
 
+- [开发规范与 Agent 交接](docs/engineering/standards.zh-CN.md)
 - [架构与边界](docs/architecture/overview.zh-CN.md)
 - [独立 Rust Core 决策](docs/decisions/0001-independent-rust-core.zh-CN.md)
 - [数据、安全、安装与升级](docs/architecture/local-runtime.zh-CN.md)
