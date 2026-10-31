@@ -23,6 +23,8 @@ interface Artifact {
   stale?: boolean;
 }
 interface Review {
+  title?: string;
+  description?: string;
   taskTypeName?: string;
   status?: string;
   id?: string;
@@ -36,6 +38,8 @@ interface Task {
   stage?: number;
   scopeRevision?: number;
   id: string;
+  title: string;
+  description?: string;
   status: string;
   goal?: string;
   criteria?: Criterion[];
@@ -149,7 +153,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
 
   if (modal.type === 'task-history')
     return (
-      <Modal title={t('任务评审与完成历史')} close={close} wide>
+      <Modal title={t('minimal.completionHistoryTitle')} close={close} wide>
         <div className="modal-body task-flow-review">
           {(task.reviews || [])
             .slice()
@@ -185,6 +189,8 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
                       )}
                     </p>
                   )}
+                  {review.title && <h3>{review.title}</h3>}
+                  {review.description && <Markdown body={review.description} />}
                   <Markdown body={review.goal || ''} />
                   <ul>
                     {review.criteria?.map((criterion) => (
@@ -219,7 +225,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
 
   if (modal.type === 'task-scope')
     return (
-      <Modal title={t('编辑目标与验收条件')} close={close} wide>
+      <Modal title={t('minimal.criteriaOptional')} close={close} wide>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -235,16 +241,18 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
           }}
         >
           <div className="modal-body task-flow-form">
-            <label className="field">
-              {t('任务目标')}
-              <textarea
-                name="goal"
-                required
-                rows={4}
-                value={goal}
-                onChange={(event) => setGoal(event.target.value)}
-              />
-            </label>
+            <p className="footnote">{t('minimal.criteriaHint')}</p>
+            {task.goal && (
+              <label className="field">
+                {t('任务目标')}
+                <textarea
+                  name="goal"
+                  rows={4}
+                  value={goal}
+                  onChange={(event) => setGoal(event.target.value)}
+                />
+              </label>
+            )}
             <section className="scope-criteria-editor" aria-label={t('必要验收条件')}>
               <div className="section-title">
                 <h3>{t('必要验收条件')}</h3>
@@ -327,13 +335,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
           </div>
           <footer className="modal-actions">
             <Cancel />
-            <button
-              className="primary"
-              type="submit"
-              disabled={
-                !scopeEditable || !goal.trim() || !criteria.some((item) => item.text.trim())
-              }
-            >
+            <button className="primary" type="submit" disabled={!scopeEditable}>
               {t('保存任务范围')}
             </button>
           </footer>
@@ -486,7 +488,13 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
     ? services.getTaskCompletion(ctx.model, task, { acceptSteps })
     : services.getTaskReview(ctx.model, task);
   const review = completing ? task.review : null;
-  let snapshotData: { criteria?: Criterion[]; artifacts?: Artifact[]; goal?: string } = {};
+  let snapshotData: {
+    title?: string;
+    description?: string;
+    criteria?: Criterion[];
+    artifacts?: Artifact[];
+    goal?: string;
+  } = {};
   try {
     snapshotData = JSON.parse(gate.snapshot);
   } catch {
@@ -495,9 +503,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
   const frozenCriteria = review?.criteria || snapshotData.criteria || task.criteria || [];
   const frozenArtifacts =
     review?.artifacts || snapshotData.artifacts || task.docs.filter((doc) => !doc.stale);
-  const allAccepted =
-    frozenCriteria.length > 0 &&
-    frozenCriteria.every((criterion) => accepted.includes(criterion.id));
+  const allAccepted = frozenCriteria.every((criterion) => accepted.includes(criterion.id));
   const pendingSteps = Boolean(
     task.workflow?.stepLabels.some((_, index) => !task.accepted?.[index]),
   );
@@ -508,6 +514,8 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
       ctx={ctx}
       gate={gate}
       completing={completing}
+      frozenTitle={review?.title || snapshotData.title || task.title}
+      frozenContent={review?.description ?? snapshotData.description ?? ''}
       frozenGoal={review?.goal || snapshotData.goal || task.goal || ''}
       frozenCriteria={frozenCriteria}
       frozenArtifacts={frozenArtifacts}
@@ -530,6 +538,8 @@ interface ReviewProps {
   ctx: Context;
   gate: Gate;
   completing: boolean;
+  frozenTitle: string;
+  frozenContent: string;
   frozenGoal: string;
   frozenCriteria: Criterion[];
   frozenArtifacts: Artifact[];
@@ -549,6 +559,8 @@ function ReviewDialog({
   ctx,
   gate,
   completing,
+  frozenTitle,
+  frozenContent,
   frozenGoal,
   frozenCriteria,
   frozenArtifacts,
@@ -592,13 +604,27 @@ function ReviewDialog({
         <p className="footnote">
           {t(
             completing
-              ? '以下是本次提交的冻结依据。逐项确认整件任务的必要验收条件。'
-              : '提交将固定本轮目标、验收条件与产物版本。',
+              ? frozenCriteria.length
+                ? '以下是本次提交的冻结依据。逐项确认整件任务的必要验收条件。'
+                : 'minimal.frozenPlain'
+              : 'minimal.reviewHint',
           )}
         </p>
-        <h3>{t('本次评审目标')}</h3>
-        <Markdown body={frozenGoal} />
-        <h3>{t('必要验收条件')}</h3>
+        <h3>{frozenTitle}</h3>
+        {frozenContent && (
+          <>
+            <h3>{t('minimal.frozenContent')}</h3>
+            <Markdown body={frozenContent} />
+          </>
+        )}
+        {frozenGoal && (
+          <>
+            <h3>{t('本次评审目标')}</h3>
+            <Markdown body={frozenGoal} />
+          </>
+        )}
+        <h3>{t('minimal.criteria')}</h3>
+        {!frozenCriteria.length && <p className="muted">{t('minimal.noCriteria')}</p>}
         <div className="task-review-criteria">
           {frozenCriteria.map((criterion) =>
             completing ? (
@@ -622,7 +648,8 @@ function ReviewDialog({
             ),
           )}
         </div>
-        <h3>{t('固定产物版本')}</h3>
+        <h3>{t(frozenArtifacts.length ? '固定产物版本' : 'minimal.result')}</h3>
+        {!frozenArtifacts.length && <p className="muted">{t('minimal.noResult')}</p>}
         {frozenArtifacts.map((doc) => (
           <details className="frozen-artifact" key={`${doc.id}:${doc.version}`}>
             <summary>
@@ -662,12 +689,24 @@ function ReviewDialog({
           </section>
         )}
         <div className="move-checks">
-          {gate.checks.map((check) => (
-            <div key={check.id} className={check.passed ? 'check-passed' : 'check-missing'}>
-              {check.passed ? <CheckCircle size={17} /> : <WarningCircle size={17} />}
-              <span>{t(check.label)}</span>
-            </div>
-          ))}
+          {gate.checks
+            .filter(
+              (check) =>
+                !check.passed ||
+                ['basics', 'status', 'snapshot'].includes(check.id) ||
+                (check.id === 'criteria' && frozenCriteria.length > 0) ||
+                (['artifacts', 'source', 'coverage'].includes(check.id) &&
+                  frozenArtifacts.length > 0) ||
+                (check.id === 'quality' && ctx.task.requirePassingResult) ||
+                (check.id === 'required_relations' && gate.requiredRelations?.length) ||
+                (['work', 'steps'].includes(check.id) && ctx.task.workflow),
+            )
+            .map((check) => (
+              <div key={check.id} className={check.passed ? 'check-passed' : 'check-missing'}>
+                {check.passed ? <CheckCircle size={17} /> : <WarningCircle size={17} />}
+                <span>{t(check.label)}</span>
+              </div>
+            ))}
         </div>
         {completing && pendingSteps && (
           <label className="move-confirm">
@@ -691,11 +730,15 @@ function ReviewDialog({
             />
             <span>
               {t(
-                completing
-                  ? '我已核对整件任务的范围、真实结果与全部必要交付，确认通过。'
-                  : ctx.task.status === 'todo'
-                    ? '我明确开始处理，并提交以上范围与成果供任务级评审。'
-                    : '我确认必要工作已完成，提交以上范围与成果供任务级评审。',
+                !frozenCriteria.length && !frozenArtifacts.length
+                  ? completing
+                    ? 'minimal.completePlain'
+                    : 'minimal.reviewPlain'
+                  : completing
+                    ? '我已核对整件任务的范围、真实结果与全部必要交付，确认通过。'
+                    : ctx.task.status === 'todo'
+                      ? '我明确开始处理，并提交以上范围与成果供任务级评审。'
+                      : '我确认必要工作已完成，提交以上范围与成果供任务级评审。',
               )}
             </span>
           </label>
@@ -720,7 +763,13 @@ function ReviewDialog({
           {t('取消')}
         </button>
         <button type="button" className="primary" disabled={!canSubmit} onClick={submit}>
-          {t(completing ? '确认全部条件并完成' : '确认提交评审')}
+          {t(
+            completing
+              ? frozenCriteria.length
+                ? '确认全部条件并完成'
+                : 'minimal.complete'
+              : '确认提交评审',
+          )}
         </button>
       </footer>
     </Modal>

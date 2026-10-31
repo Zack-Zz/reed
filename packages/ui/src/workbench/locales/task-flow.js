@@ -155,6 +155,10 @@ export const taskFlowMessages = {
 };
 
 const ruleMessages = {
+  'check-basics': ['任务标题与类型有效', 'The task title and type are valid'],
+  'title-required': ['请填写任务标题', 'Enter a task title'],
+  'invalid-content': ['任务内容必须为文本', 'Task content must be text'],
+  'basics-saved': ['任务已保存', 'Task saved'],
   'check-goal': [
     '目标已明确并保存为当前范围',
     'The goal is defined and saved in the current scope',

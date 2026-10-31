@@ -117,9 +117,8 @@ test('review drag requires exact current scope and output snapshot; stage accept
   assert.equal(getBoardMove(state, id, 'in_progress').kind, 'reopen');
 });
 
-test('task artifacts that are empty, stale, not executed or changed cannot be accepted by dragging', () => {
+test('provided task artifacts that are empty, stale or not executed cannot be accepted by dragging', () => {
   for (const mutate of [
-    (t) => (t.docs = []),
     (t) => (t.docs[0].body = ' '),
     (t) => (t.docs[0].stale = true),
     (t) => (t.docs[0].outcome = 'not_run'),

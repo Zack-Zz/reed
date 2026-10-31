@@ -138,6 +138,7 @@ const blankTask = (id, title, project = '成员中心') => ({
   sessionIds: [],
   docs: [],
   notes: [],
+  comments: [],
 });
 const documentStage = (kind) => ({ 需求: 0, 设计: 1, 验证: 3 })[kind] ?? null;
 const doc = (id, title, version, kind, body, stage = documentStage(kind)) => ({
@@ -707,6 +708,22 @@ export function reduce(state, action) {
       );
       task.workspace.origin.repo = context.repo;
     }
+    if (
+      title !== task.title ||
+      context.description !== (task.description || '') ||
+      (action.taskType !== undefined && action.taskType !== task.taskType)
+    )
+      applyTaskAction(
+        next,
+        task,
+        {
+          type: 'SAVE_TASK_BASICS',
+          title,
+          taskType: action.taskType ?? task.taskType,
+          description: context.description,
+        },
+        () => {},
+      );
     if (action.taskType !== undefined) {
       requireThat(
         action.taskType === task.taskType ||
@@ -751,12 +768,6 @@ export function reduce(state, action) {
     assertPrerequisites(task);
     const gate = getStageReview(next, task);
     assertDocumentSnapshot(task, gate.document, action);
-    requireThat(
-      task.attention === 'review' ||
-        (task.attention === 'idle' &&
-          task.docs.find((document) => document.id === gate.document?.id)?.outcome === 'manual'),
-      '当前阶段尚未进入待验收状态',
-    );
     requireThat(
       gate.checks.every((item) => item.passed),
       gate.checks
@@ -1123,7 +1134,17 @@ export function reduce(state, action) {
       );
       break;
     case 'UPDATE_TASK':
-      task.title = text(action.title, '任务标题');
+      applyTaskAction(
+        next,
+        task,
+        {
+          type: 'SAVE_TASK_BASICS',
+          title: action.title,
+          taskType: task.taskType,
+          description: task.description || '',
+        },
+        () => {},
+      );
       markStageSyncPending(task);
       emit(task.id, '已保存本地任务标题');
       break;

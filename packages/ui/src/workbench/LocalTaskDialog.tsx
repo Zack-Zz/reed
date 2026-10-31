@@ -192,9 +192,10 @@ export function LocalTaskDialog({
             }
           />
           <label className="field">
-            {t('任务类型（可后补）')}
+            {t('任务类型')}
             <Select
               aria-label={t('任务类型')}
+              required
               value={fields.taskType}
               onChange={(event: { target: { value: string } }) =>
                 update({ taskType: event.target.value })
@@ -321,7 +322,7 @@ export function LocalTaskDialog({
             )}
           </label>
           <label className="field">
-            {t('任务说明（可后补）')}
+            {t('minimal.contentOptional')}
             <textarea
               name="description"
               value={fields.description}

@@ -1,4 +1,5 @@
 import { selectionMessages, selectionChineseLabels } from './locales/workflow-selection.ts';
+import { minimalTaskMessages, minimalTaskChineseLabels } from './locales/minimal-task.ts';
 import { configurationMessages, configurationChineseLabels } from './locales/configuration.ts';
 import { commonMessages, chineseLabels } from './locales/common.js';
 import { relationMessages, relationChineseLabels } from './locales/relations.js';
@@ -11,6 +12,7 @@ import { taskFlowMessages, taskFlowChineseLabels } from './locales/task-flow.js'
 export const LOCALE_KEY = 'reed-locale';
 export const SUPPORTED_LOCALES = ['zh-CN', 'en'];
 export const messages = {
+  ...minimalTaskMessages,
   ...workbenchMessages,
   ...connectorMessages,
   ...workflowMessages,
@@ -67,7 +69,8 @@ export function createTranslator(locale) {
       return interpolate(
         english
           ? messages[key]
-          : selectionChineseLabels[key] ||
+          : minimalTaskChineseLabels[key] ||
+              selectionChineseLabels[key] ||
               configurationChineseLabels[key] ||
               relationChineseLabels[key] ||
               taskFlowChineseLabels[key] ||

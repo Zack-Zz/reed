@@ -6,7 +6,7 @@ import { I18nProvider } from '../src/workbench/i18n.jsx';
 import { createMockWorkbenchRuntime } from '../src/mock';
 import { createInitialState } from '../src/mock/model.js';
 
-function renderBoard(status = 'all', locale = 'zh-CN', extra = {}) {
+function renderBoard(status = 'all', locale = 'zh-CN', extra = {}, pendingBasis = false) {
   const model = createInitialState();
   const local = structuredClone(model.tasks.find((task: { id: string }) => task.id === 'LOCAL-1'));
   const source = structuredClone(model.tasks[0]);
@@ -32,6 +32,10 @@ function renderBoard(status = 'all', locale = 'zh-CN', extra = {}) {
     { ...local, id: 'LOCAL-DONE', status: 'done', taskType: 'documentation', workflow: null },
     { ...local, id: 'LOCAL-ARCHIVED', status: 'archived', workflow: null },
   ];
+  if (pendingBasis)
+    model.tasks.forEach((task: any) => {
+      task.completions = [{ id: 'old-completion', applicability: 'pending' }];
+    });
   return renderToStaticMarkup(
     <WorkbenchRuntimeProvider runtime={createMockWorkbenchRuntime()}>
       <I18nProvider initialLocale={locale}>
@@ -48,6 +52,10 @@ const cardIds = (html: string) =>
   [...html.matchAll(/data-task-id="([^"]+)"/g)].map((match) => match[1]);
 
 describe('personal board lifecycle and type filters', () => {
+  it('reserves completion-basis warnings for tasks still completed', () => {
+    const html = renderBoard('all', 'zh-CN', {}, true);
+    expect(html.match(/class="basis-warning"/g)).toHaveLength(1);
+  });
   it.each([
     ['todo', ['LOCAL-TODO']],
     ['in_progress', ['FLOW-PROCESSING', 'LOCAL-PROCESSING']],

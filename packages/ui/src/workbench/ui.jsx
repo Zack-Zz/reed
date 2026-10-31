@@ -22,7 +22,7 @@ export const needsAttention = (t) =>
 export const isBusy = (t) => ['running', 'waiting', 'unknown'].includes(t.attention);
 export const latest = (t, stage) => t.docs.filter((d) => d.stage === stage).at(-1);
 export const taskStatus = (task) =>
-  ({ todo: '待办', in_progress: '处理中', review: '评审中', done: '已完成', archived: '已归档' })[
+  ({ todo: '待办', in_progress: '处理中', review: '评审中', done: '已完成', archived: '归档' })[
     task.status
   ] || '状态待确认';
 export const taskTypeLabel = (task, model, translate = (value) => value) => {
@@ -70,6 +70,14 @@ export function Status({ value, text }) {
       {t(text || activity[value])}
     </span>
   );
+}
+export function taskEventText(event, t) {
+  return event.text === 'task.status-changed'
+    ? t('minimal.statusActivity', {
+        from: t(taskStatus({ status: event.fromStatus })),
+        status: t(taskStatus({ status: event.status })),
+      })
+    : t(event.text);
 }
 export function Markdown({ body = '', preview = false }) {
   return (

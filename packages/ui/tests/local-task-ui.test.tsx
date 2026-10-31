@@ -57,26 +57,27 @@ describe('local task creation and explicit start', () => {
     expect(html).toContain('创建后进入待办');
   });
 
-  it('presents an explicit start action without a repository or phase output', () => {
+  it('presents status switching without requiring a repository or phase output', () => {
     const html = renderLocal('detail');
-    expect(html).toContain('开始处理');
-    expect(html).toContain('未关联仓库');
+    expect(html).toContain('aria-label="切换任务状态"');
+    expect(html).not.toContain('未关联仓库');
     expect(html).toContain('先整理本地任务目标');
-    expect(html).toContain('完善任务信息');
+    expect(html).toContain('编辑任务');
   });
 
-  it('offers manual or Agent processing after the task has started', () => {
+  it('offers comments instead of separate review and result actions', () => {
     const html = renderLocal('detail', true);
-    expect(html).toContain('提交产物');
-    expect(html).toContain('提交任务评审');
-    expect(html).toContain('交给 Agent');
+    expect(html).toContain('添加评论');
+    expect(html).not.toContain('填写处理结果');
+    expect(html).not.toContain('提交任务评审');
+    expect(html).not.toContain('交给 Agent');
     expect(html).not.toContain('>开始处理<');
     expect(html).not.toContain('需求尚未开始');
   });
 
   it('localizes the create and start experience in English', () => {
     expect(renderLocal('create', false, 'en')).toContain('Unassigned');
-    expect(renderLocal('detail', false, 'en')).toContain('Start working');
+    expect(renderLocal('detail', false, 'en')).toContain('Change task status');
   });
 });
 

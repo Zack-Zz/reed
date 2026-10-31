@@ -100,6 +100,18 @@ function isUsableDraft(model: unknown): boolean {
           ))) &&
       Array.isArray(task.accepted) &&
       Array.isArray(task.notes) &&
+      (task.comments === undefined ||
+        (isCollection(task.comments) &&
+          task.comments.every(
+            (comment) =>
+              typeof comment.id === 'string' &&
+              typeof comment.body === 'string' &&
+              comment.body.trim().length > 0 &&
+              comment.body.length <= 20000 &&
+              typeof comment.createdAt === 'string' &&
+              Number.isFinite(Date.parse(comment.createdAt)) &&
+              comment.author === 'You',
+          ))) &&
       Array.isArray(task.sessionIds) &&
       (task.description == null || typeof task.description === 'string') &&
       (task.references == null ||

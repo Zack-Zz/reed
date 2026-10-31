@@ -14,17 +14,18 @@ import { useWorkbenchRuntime } from '../runtime-context.js';
 import { useI18n } from '../i18n.jsx';
 import {
   activity,
+  taskEventText,
   syncLabel,
-  taskStatus,
   taskTypeLabel,
   artifactOutcomeLabel,
   IconButton,
   Markdown,
-  Status,
 } from '../ui.jsx';
 import { SourceBadge } from '../SourceBadge.jsx';
-import { Select } from '../Select.jsx';
 import { TaskContextSection } from '../TaskContextSection';
+import { TaskRelationsSummary } from '../TaskRelationsSummary';
+import { TaskStatusControl } from '../TaskStatusControl';
+import { TaskComments } from '../TaskComments';
 
 function Resources({ ctx }) {
   const { t } = useI18n();
@@ -80,84 +81,12 @@ function Resources({ ctx }) {
           <small>{t(task.workspace.verified ? '目录已核对' : '关联不代表执行权限')}</small>
         </span>
       </button>
+      {task.status === 'in_progress' && (
+        <button className="quiet small" onClick={() => setModal({ type: 'prepare' })}>
+          {t('交给 Agent')}
+        </button>
+      )}
     </>
-  );
-}
-
-function TaskActions({ ctx }) {
-  const { t } = useI18n();
-  const { task, run, setModal } = ctx;
-  if (task.status === 'archived')
-    return (
-      <div className="notice">
-        <CheckCircle size={20} />
-        <span>
-          {t('任务已归档')}
-          <small>{t('历史与资源保留，恢复后仍为已完成。')}</small>
-        </span>
-        <button className="secondary" onClick={() => run('RESTORE_TASK', {}, '已恢复为已完成')}>
-          {t('恢复归档')}
-        </button>
-      </div>
-    );
-  if (task.status === 'done')
-    return (
-      <div className="actions">
-        <button className="secondary" onClick={() => run('ARCHIVE_TASK', {}, '任务已归档')}>
-          {t('归档任务')}
-        </button>
-        <button className="quiet" onClick={() => setModal({ type: 'task-reopen' })}>
-          {t('重新打开任务')}
-        </button>
-        <span className="action-help">{t('完成决定保留；继续工作需要记录原因。')}</span>
-      </div>
-    );
-  if (task.status === 'review')
-    return (
-      <div className="actions">
-        <button className="primary" onClick={() => setModal({ type: 'task-review' })}>
-          {t('审阅并验收任务')}
-        </button>
-        <button className="secondary" onClick={() => setModal({ type: 'task-feedback' })}>
-          {t('要求修改')}
-        </button>
-        <button
-          className="quiet"
-          onClick={() => setModal({ type: 'task-feedback', withdraw: true })}
-        >
-          {t('撤回评审')}
-        </button>
-      </div>
-    );
-  if (task.status === 'todo')
-    return (
-      <div className="actions">
-        <button className="primary" onClick={() => run('START_TASK', {}, '已开始处理任务')}>
-          {t('开始处理')}
-        </button>
-        {task.docs.length > 0 && (
-          <button
-            className="secondary"
-            onClick={() => setModal({ type: 'task-review', startAndSubmit: true })}
-          >
-            {t('开始并提交评审')}
-          </button>
-        )}
-        <span className="action-help">{t('开始处理不会自动启动 Agent。')}</span>
-      </div>
-    );
-  return (
-    <div className="actions">
-      <button className="primary" onClick={() => setModal({ type: 'task-artifact' })}>
-        {t('提交产物')}
-      </button>
-      <button className="secondary" onClick={() => setModal({ type: 'task-review' })}>
-        {t('提交任务评审')}
-      </button>
-      <button className="quiet" onClick={() => setModal({ type: 'prepare' })}>
-        {t('交给 Agent')}
-      </button>
-    </div>
   );
 }
 
@@ -201,20 +130,20 @@ function ExecutionNotice({ ctx }) {
 }
 
 export function TaskDetail({ ctx, saved }) {
-  const { connectorReadable, getStageReview, getTaskTypes, currentStepDocuments, stepIsSkipped } =
+  const { connectorReadable, getStageReview, currentStepDocuments, stepIsSkipped } =
     useWorkbenchRuntime().services;
   const { t } = useI18n();
   const { task, model, stage, setStage, setModal, go, run } = ctx;
   const [more, setMore] = useState(false);
-  const TASK_TYPES = getTaskTypes(model, true).filter(
-    (type) => type.enabled || type.id === task.taskType,
-  );
   const editable = ['todo', 'in_progress'].includes(task.status);
   const localTask = task.origin?.kind === 'local' && task.origin.system === 'reed';
+  const hasContext = Boolean(task.project || task.repo || task.references?.length);
+  const hasResources = Boolean(task.docs.length || task.sessionIds.length || task.workspace.ready);
+  const taskEvents = model.events.filter((event) => event.taskId === task.id);
   const completion = task.completions?.at(-1);
   const pendingBasis =
-    completion?.applicability === 'pending' ||
-    (['done', 'archived'].includes(task.status) &&
+    ['done', 'archived'].includes(task.status) &&
+    (completion?.applicability === 'pending' ||
       task.docs.some((doc) => doc.stale && !doc.supersededWorkflow));
   const stageDoc = task.workflow ? currentStepDocuments(task, stage).at(-1) : null;
   const stageChecks = task.workflow ? getStageReview(model, task) : null;
@@ -231,7 +160,7 @@ export function TaskDetail({ ctx, saved }) {
           )
       : null;
   return (
-    <div className="detail-layout">
+    <div className={`detail-layout${!hasResources ? ' task-detail-basic' : ''}`}>
       <section className="task-main">
         <div className="breadcrumbs">
           <button onClick={() => go(ctx.taskOrigin)}>
@@ -269,10 +198,10 @@ export function TaskDetail({ ctx, saved }) {
                     <button
                       onClick={() => {
                         setMore(false);
-                        setModal({ type: 'edit-title' });
+                        setModal({ type: 'task-basics' });
                       }}
                     >
-                      {t('编辑任务标题')}
+                      {t('minimal.edit')}
                     </button>
                     {localTask && (
                       <button
@@ -282,16 +211,6 @@ export function TaskDetail({ ctx, saved }) {
                         }}
                       >
                         {t('完善任务信息')}
-                      </button>
-                    )}
-                    {task.status === 'in_progress' && (
-                      <button
-                        onClick={() => {
-                          setMore(false);
-                          run('REQUEUE_TASK', {}, '任务已退回待办');
-                        }}
-                      >
-                        {t('退回待办')}
                       </button>
                     )}
                     <button
@@ -313,6 +232,17 @@ export function TaskDetail({ ctx, saved }) {
                     </button>
                   </>
                 )}
+                {(task.reviews?.length || task.completions?.length) > 0 && (
+                  <button
+                    onClick={() => {
+                      setMore(false);
+                      setModal({ type: 'task-history' });
+                    }}
+                  >
+                    <ListBullets size={16} />
+                    {t('minimal.completionHistory')}
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setMore(false);
@@ -320,43 +250,32 @@ export function TaskDetail({ ctx, saved }) {
                   }}
                 >
                   <ListBullets size={16} />
-                  {t('活动记录')}
+                  {t('minimal.allActivity')}
                 </button>
               </div>
             )}
           </div>
         </div>
-        <h1>{task.title}</h1>
-        <button className="quiet small" onClick={() => ctx.openRelations?.(task.id)}>
-          {t('relation.open')}
-        </button>
-        <div className="task-meta-line">
-          {editable ? (
-            <Select
-              className="task-type-select"
-              aria-label={t('修改任务类型')}
-              value={task.taskType || 'uncategorized'}
-              onChange={(event) =>
-                run('UPDATE_TASK_TYPE', { taskType: event.target.value }, '本地任务类型已更新')
-              }
-            >
-              {TASK_TYPES.map(({ id, label, builtin }) => (
-                <option key={id} value={id}>
-                  {builtin ? t(label) : label}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <span className="type-tag">{taskTypeLabel(task, model, t)}</span>
+        <div className="task-heading">
+          <h1>{task.title}</h1>
+          {editable && (
+            <button className="quiet small" onClick={() => setModal({ type: 'task-basics' })}>
+              {t('minimal.edit')}
+            </button>
           )}
-          <Status value={task.status} text={taskStatus(task)} />
+        </div>
+        <div className="task-meta-line">
+          <span className="type-tag">
+            {t('minimal.typeValue', { type: taskTypeLabel(task, model, t) })}
+          </span>
+          <TaskStatusControl key={task.id} ctx={ctx} />
           {task.paused && (
             <span className="status">
               <Pause size={12} />
               {t('已暂停')}
             </span>
           )}
-          <span>{task.project || t('未归组')}</span>
+          {task.project && <span>{task.project}</span>}
         </div>
         {task.migrationNotice && (
           <p className="scope-note" role="status">
@@ -369,20 +288,38 @@ export function TaskDetail({ ctx, saved }) {
             <small>{t('保留历史完成事实；补做或采用新范围前请重新打开任务。')}</small>
           </p>
         )}
-        <section className="task-flow-section">
+        <section className="task-flow-section task-content">
           <div className="section-title">
-            <h2>{t('目标说明与验收条件')}</h2>
-            {editable && (
-              <button className="text-link" onClick={() => setModal({ type: 'task-scope' })}>
-                {t('编辑目标与验收条件')}
+            <h2>{t('minimal.content')}</h2>
+            {editable && !task.description && (
+              <button className="text-link" onClick={() => setModal({ type: 'task-basics' })}>
+                {t('minimal.addContent')}
               </button>
             )}
           </div>
-          {task.goal ? (
-            <Markdown body={task.goal} />
+          {task.description ? (
+            <Markdown body={task.description} />
           ) : (
-            <p className="muted">{t('先明确目标，提交评审前补齐可判断的验收条件。')}</p>
+            <p className="muted">{t('minimal.noContent')}</p>
           )}
+        </section>
+        <section
+          className={`task-flow-section${task.goal || task.criteria?.length || task.requirePassingResult ? '' : ' task-supplement-empty'}`}
+        >
+          <div className="section-title">
+            <h2>{t('minimal.criteria')}</h2>
+            {editable && (
+              <button className="text-link" onClick={() => setModal({ type: 'task-scope' })}>
+                {t(
+                  task.goal || task.criteria?.length || task.requirePassingResult
+                    ? 'minimal.editCriteria'
+                    : 'minimal.addCriteria',
+                )}
+              </button>
+            )}
+          </div>
+          {task.goal && <Markdown body={task.goal} />}
+          {!task.criteria?.length && <p className="muted">{t('minimal.noCriteria')}</p>}
           <ul className="task-criteria">
             {(task.criteria || []).map((criterion) => (
               <li key={criterion.id}>
@@ -392,103 +329,94 @@ export function TaskDetail({ ctx, saved }) {
             ))}
           </ul>
           {task.requirePassingResult && <p className="footnote">{t('本任务要求执行结果通过。')}</p>}
-          {task.status === 'review' && (
-            <p className="footnote">{t('评审依据已冻结，采用修改前请先撤回评审。')}</p>
-          )}
-          <TaskActions ctx={ctx} />
+          {task.status === 'review' && <p className="footnote">{t('minimal.reviewEditHint')}</p>}
         </section>
-        <section className="task-flow-section">
-          <div className="section-title">
-            <h2>{t('产物与评审')}</h2>
-            {task.status === 'review' && (
-              <button className="text-link" onClick={() => setModal({ type: 'task-review' })}>
-                {t('查看冻结评审依据')}
-              </button>
-            )}
-          </div>
-          {task.docs.length ? (
-            <div className="task-artifacts">
-              {task.docs
-                .slice()
-                .reverse()
-                .map((doc) => (
-                  <div className="task-artifact" key={doc.id}>
-                    <button
-                      className="resource-row"
-                      onClick={() => setModal({ type: 'document', docId: doc.id })}
-                    >
-                      <FileText size={20} />
-                      <span>
-                        <strong>
-                          {doc.title} · V{doc.version}
-                        </strong>
-                        <small>
-                          {t(artifactOutcomeLabel(doc))}
-                          {' · '}
-                          {t(
-                            doc.supersededWorkflow
-                              ? 'selection.historical'
-                              : doc.stale
-                                ? '依据待复核'
-                                : '当前范围',
-                          )}
-                        </small>
-                      </span>
-                      <span className="text-link">{t('打开原文')}</span>
-                    </button>
-                    {editable && doc.stale && (
-                      <button
-                        className="quiet small"
-                        onClick={() => {
-                          run(
-                            'REUSE_TASK_ARTIFACT',
-                            { documentId: doc.id, expectedScopeRevision: task.scopeRevision },
-                            '已复用任务产物',
-                          );
-                        }}
-                      >
-                        {t('核对并复用此版本')}
-                      </button>
-                    )}
-                  </div>
-                ))}
+        {task.docs.length > 0 && (
+          <section className="task-flow-section">
+            <div className="section-title">
+              <h2>{t('minimal.linkedDocuments')}</h2>
             </div>
-          ) : (
-            <p className="muted">{t('尚无任务产物。人工整理或 Agent 结果均可作为交付。')}</p>
-          )}
-          {completion && (
-            <p className="task-decision">
-              <CheckCircle size={17} />
-              {t('任务完成决定已保留')}
-              <small>
-                {t(
-                  completion.applicability === 'pending'
-                    ? '依据待复核'
-                    : completion.applicability === 'superseded'
-                      ? '已被后轮替代'
-                      : '依据有效',
-                )}
-              </small>
-            </p>
-          )}
-          {(task.reviews?.length || 0) > 0 && (
-            <button className="quiet small" onClick={() => setModal({ type: 'task-history' })}>
-              {t('查看评审与完成历史')}
-            </button>
-          )}
-        </section>
+            {task.docs.length ? (
+              <div className="task-artifacts">
+                {task.docs
+                  .slice()
+                  .reverse()
+                  .map((doc) => (
+                    <div className="task-artifact" key={doc.id}>
+                      <button
+                        className="resource-row"
+                        onClick={() => setModal({ type: 'document', docId: doc.id })}
+                      >
+                        <FileText size={20} />
+                        <span>
+                          <strong>
+                            {doc.title} · V{doc.version}
+                          </strong>
+                          <small>
+                            {t(artifactOutcomeLabel(doc))}
+                            {' · '}
+                            {t(
+                              doc.supersededWorkflow
+                                ? 'selection.historical'
+                                : doc.stale
+                                  ? '依据待复核'
+                                  : '当前范围',
+                            )}
+                          </small>
+                        </span>
+                        <span className="text-link">{t('打开原文')}</span>
+                      </button>
+                      {editable && doc.stale && (
+                        <button
+                          className="quiet small"
+                          onClick={() => {
+                            run(
+                              'REUSE_TASK_ARTIFACT',
+                              { documentId: doc.id, expectedScopeRevision: task.scopeRevision },
+                              '已复用任务产物',
+                            );
+                          }}
+                        >
+                          {t('核对并复用此版本')}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+          </section>
+        )}
+        <TaskRelationsSummary
+          ctx={ctx}
+          onLink={editable ? () => setModal({ type: 'relation-link', taskId: task.id }) : undefined}
+        />
+        <TaskComments key={task.id} ctx={ctx} />
         <section className="task-flow-section">
           <div className="section-title">
-            <h2>{t('处理记录')}</h2>
+            <h2>{t('minimal.history')}</h2>
             <button className="text-link" onClick={() => setModal({ type: 'timeline' })}>
-              {t('活动记录')}
+              {t('minimal.allActivity')}
             </button>
           </div>
           <ExecutionNotice ctx={ctx} />
-          {task.notes?.length ? (
-            task.notes.map((note, index) => <p key={index}>{t(note)}</p>)
-          ) : (
-            <p className="muted">{t('人工处理与 Agent 执行的记录会保留在这里。')}</p>
+          <ol className="task-activity-list">
+            {taskEvents
+              .slice(-4)
+              .reverse()
+              .map((event) => (
+                <li key={event.id}>
+                  <span>{taskEventText(event, t)}</span>
+                  <small>{t(event.time)}</small>
+                </li>
+              ))}
+          </ol>
+          {task.notes?.length > 0 && (
+            <details className="task-note-details">
+              <summary>{t('minimal.notes')}</summary>
+              {task.notes.map((note, index) => (
+                <p key={index}>{t(note)}</p>
+              ))}
+            </details>
           )}
         </section>
         {task.workflow && (
@@ -607,16 +535,17 @@ export function TaskDetail({ ctx, saved }) {
             )}
             {task.status === 'in_progress' && stage === task.stage && (
               <div className="actions">
-                {task.workflow.steps?.[stage]?.mode === 'manual' ? (
+                {task.workflow.steps?.[stage]?.mode !== 'agent' && (
                   <button className="secondary" onClick={() => setModal({ type: 'task-artifact' })}>
                     {t('提交产物')}
                   </button>
-                ) : (
+                )}
+                {task.workflow.steps?.[stage]?.mode !== 'manual' && (
                   <button className="secondary" onClick={() => setModal({ type: 'prepare' })}>
                     {t('准备内部步骤')}
                   </button>
                 )}
-                {(task.attention === 'review' || stageDoc?.outcome === 'manual') && (
+                {(task.attention === 'review' || stageDoc) && (
                   <button
                     className="secondary"
                     disabled={!stageChecks?.checks.every((check) => check.passed)}
@@ -692,34 +621,39 @@ export function TaskDetail({ ctx, saved }) {
             ))}
           </details>
         )}
-        <TaskContextSection
-          task={task}
-          edit={editable && localTask ? () => setModal({ type: 'task-context' }) : undefined}
-        />
-        <div className="mobile-resources">
-          <h3>{t('关联资源')}</h3>
-          <Resources ctx={ctx} />
-        </div>
-      </section>
-      <aside className="inspector">
-        <h2>{t('关联资源')}</h2>
-        <Resources ctx={ctx} />
-        <button
-          className="quiet small inspector-history"
-          onClick={() => setModal({ type: 'timeline' })}
-        >
-          <ListBullets size={15} />
-          {t('查看活动记录 ·')}
-          {model.events.filter((event) => event.taskId === task.id).length}
-        </button>
-        <div className="save-state">
-          <CheckCircle size={18} />
+        {hasContext && (
+          <TaskContextSection
+            task={task}
+            showDescription={false}
+            edit={editable && localTask ? () => setModal({ type: 'task-context' }) : undefined}
+          />
+        )}
+        {hasResources && (
+          <div className="mobile-resources">
+            <h3>{t('关联资源')}</h3>
+            <Resources ctx={ctx} />
+          </div>
+        )}
+        <div className={`save-state${saved ? '' : ' save-state-error'}`} role="status">
           <span>
             {t(saved ? '本地已保存' : '保存失败，内容暂留内存')}
             <small>{t('演示数据 · 仅当前浏览器')}</small>
           </span>
         </div>
-      </aside>
+      </section>
+      {hasResources && (
+        <aside className="inspector">
+          <h2>{t('关联资源')}</h2>
+          <Resources ctx={ctx} />
+          <button
+            className="quiet small inspector-history"
+            onClick={() => setModal({ type: 'timeline' })}
+          >
+            <ListBullets size={15} />
+            {t('minimal.allActivityCount', { count: taskEvents.length })}
+          </button>
+        </aside>
+      )}
     </div>
   );
 }

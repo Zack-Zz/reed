@@ -38,7 +38,7 @@ export function relationEvidenceValid(state, binding, visited = new Set()) {
   } catch {
     return false;
   }
-  if (!Array.isArray(snapshot.artifacts) || !snapshot.artifacts.length) return false;
+  if (snapshot.taskId !== task.id || !Array.isArray(snapshot.artifacts)) return false;
   const unchanged = snapshot.artifacts.every((accepted) => {
     const document = task.docs.find((item) => item.id === accepted.id);
     return (

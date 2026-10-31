@@ -69,7 +69,7 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
             {tr(
               {
                 attention: '待我处理',
-                archived: '已归档',
+                archived: '归档',
                 completed: '已完成',
                 sourced: '来源任务',
               }[filter] || '任务导航',
@@ -106,7 +106,7 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
           <option value="all">{tr('全部任务')}</option>
           <option value="attention">{tr('待我处理')}</option>
           <option value="completed">{tr('已完成')}</option>
-          <option value="archived">{tr('已归档')}</option>
+          <option value="archived">{tr('归档')}</option>
           <option value="sourced">{tr('全部来源任务')}</option>
         </Select>
         <Select
@@ -254,9 +254,10 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
                 {['running', 'waiting', 'unknown', 'failed'].includes(t.attention) && (
                   <small>{tr(activity[t.attention])}</small>
                 )}
-                {t.completions?.at(-1)?.applicability === 'pending' && (
-                  <small className="basis-warning">{tr('完成依据待复核')}</small>
-                )}
+                {['done', 'archived'].includes(t.status) &&
+                  t.completions?.at(-1)?.applicability === 'pending' && (
+                    <small className="basis-warning">{tr('完成依据待复核')}</small>
+                  )}
               </span>
               <span className="task-type">{taskTypeLabel(t, model, tr)}</span>
               <Status value={t.status} text={taskStatus(t)} />

@@ -4,6 +4,7 @@ export const workbenchMessages = {
   项目: 'Project',
   已完成: 'Completed',
   已归档: 'Archived',
+  归档: 'Archived',
   连接器: 'Connectors',
   交互预览: 'Interaction preview',
   本地演示: 'Local demo',

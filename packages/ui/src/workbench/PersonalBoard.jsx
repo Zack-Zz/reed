@@ -1,6 +1,7 @@
 import { useWorkbenchRuntime } from './runtime-context.js';
 import { useI18n } from './i18n.jsx';
 import { Select } from './Select.jsx';
+import { TaskStatusChangePanel } from './TaskStatusControl';
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus,
@@ -30,10 +31,10 @@ const emptyCopy = {
 };
 
 export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
-  const { getBoardColumn, getBoardMove, getTaskTypes, getOriginInfo, BOARD_COLUMNS } =
+  const { getBoardColumn, getTaskStatusChange, getTaskTypes, getOriginInfo, BOARD_COLUMNS } =
     useWorkbenchRuntime().services;
   const { t: tr } = useI18n();
-  const { model, openTask, setModal, openForTask } = ctx;
+  const { model, openTask, setModal } = ctx;
   const TASK_TYPES = getTaskTypes(model, true);
   const columns = useRef({});
   const dragLock = useRef(false);
@@ -162,21 +163,24 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
     setPicker(null);
     setDragging(null);
     setDropTarget(null);
-    const plan = getBoardMove(model, taskId, target);
-    if (plan.kind === 'noop') return;
-    if (plan.allowed && ['submit_review', 'complete', 'feedback', 'reopen'].includes(plan.kind)) {
-      openForTask(
+    const task = model.tasks.find((item) => item.id === taskId);
+    if (!task || target === task.status) return;
+    const gate = getTaskStatusChange(model, task, target);
+    if (!gate.allowed || (target === 'done' && task.criteria?.length)) {
+      setMove({ taskId, target });
+      return;
+    }
+    ctx.act(
+      {
+        type: 'CHANGE_TASK_STATUS',
         taskId,
-        {
-          submit_review: 'task-review',
-          complete: 'task-review',
-          feedback: 'task-feedback',
-          reopen: 'task-reopen',
-        }[plan.kind],
-      );
-    } else setMove({ taskId, target });
+        status: target,
+        expectedStatus: task.status,
+        expectedSnapshot: gate.snapshot,
+      },
+      'minimal.statusSaved',
+    );
   }
-  const movePlan = move ? getBoardMove(model, move.taskId, move.target) : null;
   const pickedTask = picker ? model.tasks.find((task) => task.id === picker) : null;
 
   return (
@@ -385,9 +389,10 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
                                 {tr('已暂停')}
                               </span>
                             )}
-                            {task.completions?.at(-1)?.applicability === 'pending' && (
-                              <span className="basis-warning">{tr('完成依据待复核')}</span>
-                            )}
+                            {task.status === 'done' &&
+                              task.completions?.at(-1)?.applicability === 'pending' && (
+                                <span className="basis-warning">{tr('完成依据待复核')}</span>
+                              )}
                           </span>
                           <span className="personal-project">{task.project || tr('未归组')}</span>
                         </button>
@@ -464,7 +469,7 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
       </div>
       <footer className="personal-footnote">
         {tr('拖拽卡片流转，点击打开详情。')}
-        <span>{tr('提交评审和完成时会检查产出与验收条件。')}</span>
+        <span>{tr('minimal.boardHint')}</span>
       </footer>
       {dragging && dragPosition && (
         <div
@@ -505,12 +510,11 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
           </div>
         </Modal>
       )}
-      {move && movePlan && (
-        <BoardMoveReview
-          key={`${move.taskId}:${move.target}:${movePlan.stage}:${movePlan.document?.id}:${movePlan.document?.version}`}
+      {move && (
+        <BoardStatusChange
+          key={`${move.taskId}:${move.target}`}
           ctx={ctx}
           move={move}
-          plan={movePlan}
           close={() => setMove(null)}
         />
       )}
@@ -518,86 +522,24 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
   );
 }
 
-function BoardMoveReview({ ctx, move, plan, close }) {
-  const { BOARD_COLUMNS } = useWorkbenchRuntime().services;
+function BoardStatusChange({ ctx, move, close }) {
   const { t } = useI18n();
-  const [confirmed, setConfirmed] = useState(false);
-  const [error, setError] = useState('');
   const task = ctx.model.tasks.find((item) => item.id === move.taskId);
-  const label = BOARD_COLUMNS.find((column) => column.id === move.target)?.label;
-  function submit() {
-    const type = { start: 'START_TASK', requeue: 'REQUEUE_TASK' }[plan.kind];
-    if (!type || !plan.allowed || !confirmed) return;
-    const next = ctx.act(
-      { type, taskId: task.id },
-      plan.kind === 'start' ? '已开始处理任务' : '任务已退回待办',
-    );
-    if (next) close();
-    else setError('任务或材料已发生变化，请重新核对流转条件。');
-  }
+  if (!task) return null;
   return (
-    <Modal
-      title={plan.allowed ? t('确认任务流转') : t('暂时不能移到{p0}', { p0: t(label) })}
-      close={close}
-    >
-      <div className="modal-body move-review">
-        <p className="move-task-name">
-          {task.title}
-          <small>{t('{p0} → {p1}', { p0: t(taskStatus(task)), p1: t(label) })}</small>
-        </p>
-        <div className="move-checks">
-          {(plan.checks || []).map((check) => (
-            <div key={check.id} className={check.passed ? 'check-passed' : 'check-missing'}>
-              {check.passed ? <CheckCircle size={18} /> : <WarningCircle size={18} />}
-              <span>{t(check.label)}</span>
-            </div>
-          ))}
-        </div>
-        {plan.reason && <p className="footnote">{t(plan.reason)}</p>}
-        {plan.allowed ? (
-          <label className="move-confirm">
-            <input
-              type="checkbox"
-              checked={confirmed}
-              onChange={(event) => setConfirmed(event.target.checked)}
-            />
-            <span>
-              {t(
-                plan.kind === 'start'
-                  ? '明确开始处理，暂不启动 Agent。'
-                  : '重新排期并保留处理记录、产物与关联。',
-              )}
-            </span>
-          </label>
-        ) : (
-          <p className="footnote">{t('卡片保持原位。补齐条件后，再提交这次流转。')}</p>
-        )}
-        {error && (
-          <p className="scope-note" role="alert">
-            {t(error)}
-          </p>
-        )}
+    <Modal title={t('minimal.changeStatus')} close={close}>
+      <div className="modal-body">
+        <p>{task.title}</p>
+        <TaskStatusChangePanel
+          ctx={{
+            ...ctx,
+            task,
+            run: (type, fields, message) => ctx.act({ type, taskId: task.id, ...fields }, message),
+          }}
+          target={move.target}
+          close={close}
+        />
       </div>
-      <footer className="modal-actions">
-        <button className="quiet" onClick={close}>
-          {t('取消')}
-        </button>
-        {plan.allowed ? (
-          <button className="primary" disabled={!confirmed} onClick={submit}>
-            {t('确认流转')}
-          </button>
-        ) : (
-          <button
-            className="primary"
-            onClick={() => {
-              close();
-              ctx.openTask(task.id, undefined, { intent: move.target });
-            }}
-          >
-            {t('打开详情并补齐')}
-          </button>
-        )}
-      </footer>
     </Modal>
   );
 }

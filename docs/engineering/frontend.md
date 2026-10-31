@@ -104,10 +104,30 @@ incomplete snapshots fall back to samples. This does not validate production Cor
 
 ## Creating and starting local tasks
 
+The minimum task has a title, type and lifecycle value. Type defaults to Uncategorized;
+creation defaults to To do. Content, acceptance criteria and relationships are optional.
+The detail view reads by default and has an explicit Edit task form. Task type is labeled;
+empty criteria and relationship sections retain compact viewing positions.
+
+Click the status to change it. A title-only task can move directly from To do to Processing
+or Done; no separate Start, Submit review or work-result form is required. In review remains
+an optional waiting-for-check status. Configured acceptance criteria are confirmed inline
+when moving to Done. Workflow promises, required links, execution ownership and explicit
+passing-result requirements remain checked. Completed tasks can be reopened through status;
+only completed tasks can be archived, and archived tasks restore to Done.
+Board moves use the same status-change checks. Changes do not start an Agent.
+
+Comments are an optional list and composer below the task, including after completion or
+archival. They store author, time and plain text independently from artifacts and completion
+snapshots. Existing linked documents and historical completion evidence remain accessible;
+a comment does not manufacture execution evidence or invalidate a completed task.
+Recent activity shows the latest four events; View all activity opens the complete list.
+These remain local mock interactions and browser storage, not Core-backed tasks or persistence.
+
 Only the title is required. Project may remain unassigned; repository and references
 are grouped under Linked context and can be supplied later. Description remains
 background context, without creating phase outputs or acceptance. New tasks stay
-in To do. Start working moves them to Processing; users then work manually
+in To do. Changing status to Processing starts work; users then work manually
 or separately prepare an Agent execution. Creation from the board opens the task drawer
 and preserves board context, prefilling a selected project filter.
 
@@ -122,7 +142,7 @@ Preparing a development workspace requires a linked repository.
 These actions remain mock rules, not Rust Core business behavior, real file integration
 or a production contract. Regressions cover title-only creation, no implicit execution,
 optional context, all task types sharing the same lifecycle, repository protection, old caches and bilingual rendering.
-Generic detail supports optional workflows, scope and criteria, versioned artifacts, task review submission/withdrawal/acceptance, archive restoration, explicit reopening with a reason, and read-only review history.
+Generic detail supports optional workflows, scope and criteria, linked versioned documents, direct status changes, task comments and read-only completion history. Earlier review/artifact commands remain in the mock adapter for compatibility; they are not separate required detail-page steps.
 Internal step acceptance does not complete a task. Failed execution exposes an explicit retry; artifact revisions retain true outcomes and require explicit necessary-work coverage.
 Browser interactions and real-host acceptance are reported separately from those tests.
 

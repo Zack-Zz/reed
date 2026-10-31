@@ -3,7 +3,15 @@ import { useI18n } from './i18n.jsx';
 import { Markdown } from './ui.jsx';
 import type { LocalTaskInfo } from './LocalTaskDialog';
 
-export function TaskContextSection({ task, edit }: { task: LocalTaskInfo; edit?: () => void }) {
+export function TaskContextSection({
+  task,
+  edit,
+  showDescription = true,
+}: {
+  task: LocalTaskInfo;
+  edit?: () => void;
+  showDescription?: boolean;
+}) {
   const { t } = useI18n();
   return (
     <section className="task-context-section">
@@ -26,7 +34,7 @@ export function TaskContextSection({ task, edit }: { task: LocalTaskInfo; edit?:
           <dd>{task.repo || t('未关联仓库')}</dd>
         </div>
       </dl>
-      {task.description && <Markdown body={task.description} />}
+      {showDescription && task.description && <Markdown body={task.description} />}
       <div className="local-reference-list">
         {(task.references || []).map((reference, index) => (
           <div className="local-reference" key={index}>

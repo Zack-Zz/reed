@@ -71,10 +71,10 @@ for (const type of ['requirement', 'development', 'test', 'verification', 'docum
   });
 }
 
-test('task review requires scope, actual output, stopped execution and exact current snapshot', () => {
+test('task review allows optional scope and output but still checks execution and exact snapshots', () => {
   const s = scenario();
   s.act('START_TASK');
-  assert.throws(() => s.submit(), /goal|scope|产物|目标|验收|task\./i);
+  assert.equal(services.getTaskReview(s.state(), s.task()).allowed, true);
   s.prepare();
   const before = structuredClone(s.state());
   s.act('BIND_SESSION', { host: 'Codex' });

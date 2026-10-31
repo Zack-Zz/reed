@@ -5,6 +5,7 @@ import { documentExportName } from './document-export';
 import { LocalTaskDialog } from './LocalTaskDialog';
 import { TaskFlowDialogs } from './TaskFlowDialogs';
 import { TaskRelationDialog } from './TaskRelationDialog';
+import { TaskBasicsDialog } from './TaskBasicsDialog';
 import { useEffect, useState } from 'react';
 import {
   FileText,
@@ -30,7 +31,17 @@ import { SourceBadge, OriginDialog } from './SourceBadge.jsx';
 import { ConnectorCatalog } from './ConnectorCatalog.jsx';
 import { ImportDialog } from './ImportDialog.jsx';
 import { SyncDialog } from './SyncDialog.jsx';
-import { Modal, Field, Markdown, Status, activity, syncLabel, isBusy, latest } from './ui.jsx';
+import {
+  Modal,
+  Field,
+  Markdown,
+  Status,
+  activity,
+  taskEventText,
+  syncLabel,
+  isBusy,
+  latest,
+} from './ui.jsx';
 const Footer = ({ children }) => <footer className="modal-actions">{children}</footer>;
 
 export function Dialogs({ ctx }) {
@@ -53,6 +64,7 @@ export function Dialogs({ ctx }) {
     }
   }, [drafts]);
   if (!modal) return null;
+  if (modal.type === 'task-basics') return <TaskBasicsDialog key={task.id} ctx={ctx} />;
   if (modal.type.startsWith('relation-')) return <TaskRelationDialog ctx={ctx} />;
   if (modal.type === 'edit-document')
     return (
@@ -501,7 +513,7 @@ export function Dialogs({ ctx }) {
   }
   if (modal.type === 'timeline')
     return (
-      <Modal title={tr('任务活动')} close={close}>
+      <Modal title={tr('minimal.activityTitle')} close={close}>
         <div className="modal-body timeline">
           <div className="activity-source">
             <span>{tr('关联任务来源')}</span>
@@ -514,7 +526,7 @@ export function Dialogs({ ctx }) {
               <div key={e.id}>
                 <CheckCircle size={17} />
                 <span>
-                  {tr(e.text)}
+                  {taskEventText(e, tr)}
                   <small>
                     {tr(e.time)} ·{' '}
                     <SourceBadge model={model} entity={e} compact open={ctx.showOrigin} />

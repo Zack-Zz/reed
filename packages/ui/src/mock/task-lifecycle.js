@@ -26,7 +26,7 @@ export const TASK_STATUSES = [
   { id: 'in_progress', label: '处理中' },
   { id: 'review', label: '评审中' },
   { id: 'done', label: '已完成' },
-  { id: 'archived', label: '已归档' },
+  { id: 'archived', label: '归档' },
 ];
 export const DEVELOPMENT_WORKFLOW = {
   templateId: 'development',
@@ -100,11 +100,13 @@ export function normalizeTask(task) {
   task.completions ??= [];
   task.workflowHistory ??= [];
   task.scopeHistory ??= [];
+  task.comments ??= [];
   if (['done', 'archived'].includes(task.status)) {
     for (const completion of task.completions)
       if (
         completion.applicability === 'valid' &&
-        (completion.basisSnapshot ?? completion.snapshot) !== taskSnapshot(task)
+        (completion.basisSnapshot ?? completion.snapshot) !==
+          taskSnapshot(task, completion.basisSnapshot ?? completion.snapshot)
       )
         completion.applicability = 'pending';
   }
@@ -147,9 +149,11 @@ export function currentArtifacts(task) {
       );
   return [...latest.values()];
 }
-export function taskSnapshot(task) {
-  return JSON.stringify({
+export function taskSnapshot(task, basis) {
+  const snapshot = {
     taskId: task.id,
+    title: task.title,
+    description: task.description || '',
     taskType: task.taskType,
     goal: task.goal,
     criteria: task.criteria,
@@ -168,7 +172,21 @@ export function taskSnapshot(task) {
       coverageComplete: d.coverageComplete,
       stale: d.stale,
     })),
-  });
+  };
+  // Old reviews did not capture basic information. Compare their original shape
+  // without rewriting history; every new submission captures the current fields.
+  if (basis) {
+    try {
+      const previous = JSON.parse(basis);
+      if (!Object.hasOwn(previous, 'title') && !Object.hasOwn(previous, 'description')) {
+        delete snapshot.title;
+        delete snapshot.description;
+      }
+    } catch {
+      /* An invalid saved basis cannot match a current snapshot. */
+    }
+  }
+  return JSON.stringify(snapshot);
 }
 // Freeze relation completion identities alongside the task's own review input.
 // Legacy snapshots remain readable; their saved bindings are never recaptured.
@@ -185,17 +203,24 @@ const gateRelations = (state, bindings) =>
 const check = (id, label, passed) => ({ id, label, passed: Boolean(passed) });
 function outputChecks(state, task) {
   const artifacts = currentArtifacts(task);
+  // Removing a workflow retains its explicitly promised outputs. Ordinary task
+  // criteria and results are independently optional; carried work is not erased.
+  const requiresArtifact = task.criteria.some((criterion) => criterion.id.startsWith('carry-'));
   return [
-    check('goal', 'task.check-goal', present(task.goal) && task.scopeRevision > 0),
+    check(
+      'basics',
+      'task.check-basics',
+      present(task.title) && getTaskTypes(state, true).some((type) => type.id === task.taskType),
+    ),
     check(
       'criteria',
       'task.check-criteria',
-      task.criteria.length > 0 && task.criteria.every((c) => present(c.id) && present(c.text)),
+      task.criteria.every((c) => present(c.id) && present(c.text)),
     ),
     check(
       'artifacts',
       'task.check-artifacts',
-      artifacts.length > 0 &&
+      (!requiresArtifact || artifacts.length > 0) &&
         artifacts.every(
           (d) =>
             present(d.id) &&
@@ -209,24 +234,22 @@ function outputChecks(state, task) {
     check(
       'source',
       'task.check-source',
-      artifacts.length > 0 &&
-        artifacts.every(
-          (d) =>
-            (d.origin?.kind === 'local' && present(d.origin.system)) ||
-            (d.origin?.kind === 'host' && present(d.origin.host)) ||
-            (d.origin?.kind === 'connector' &&
-              present(d.origin.connectorId) &&
-              present(d.origin.externalId)),
-        ),
+      artifacts.every(
+        (d) =>
+          (d.origin?.kind === 'local' && present(d.origin.system)) ||
+          (d.origin?.kind === 'host' && present(d.origin.host)) ||
+          (d.origin?.kind === 'connector' &&
+            present(d.origin.connectorId) &&
+            present(d.origin.externalId)),
+      ),
     ),
     check(
       'coverage',
       'task.check-coverage',
-      artifacts.length > 0 &&
-        artifacts.every(
-          (d) =>
-            d.coverageComplete !== false && !['waiting', 'unknown', 'not_run'].includes(d.outcome),
-        ),
+      artifacts.every(
+        (d) =>
+          d.coverageComplete !== false && !['waiting', 'unknown', 'not_run'].includes(d.outcome),
+      ),
     ),
     check(
       'quality',
@@ -265,7 +288,7 @@ export function getTaskReview(state, task) {
 }
 export function getTaskCompletion(state, task, { acceptSteps = false } = {}) {
   const bindings = reviewBindings(state, task);
-  const snapshot = withRelationBindings(taskSnapshot(task), bindings);
+  const snapshot = withRelationBindings(taskSnapshot(task, task.review?.snapshot), bindings);
   const frozen =
     task.review?.snapshot &&
     withRelationBindings(task.review.snapshot, task.review.requiredRelations || []);
@@ -294,6 +317,58 @@ export function getTaskCompletion(state, task, { acceptSteps = false } = {}) {
     requiredRelations: gateRelations(state, bindings),
   };
 }
+
+// Status selection uses the existing task checks and completion identities. A
+// direct completion plans the same frozen basis without a separate review event.
+export function getTaskStatusChange(state, task, targetStatus) {
+  const known = (status) => TASK_STATUSES.some((item) => item.id === status);
+  const same = task.status === targetStatus;
+  const transitionAllowed =
+    known(task.status) &&
+    known(targetStatus) &&
+    (same ||
+      (task.status === 'archived'
+        ? targetStatus === 'done'
+        : targetStatus === 'archived'
+          ? task.status === 'done'
+          : true));
+  const checks = [check('transition', 'task.check-status-change', transitionAllowed)];
+  let snapshot = withRelationBindings(taskSnapshot(task), reviewBindings(state, task));
+  if (transitionAllowed && !same) {
+    if (targetStatus === 'in_progress')
+      checks.push(check('paused', 'task.start-state', !task.paused));
+    if (task.status === 'archived') {
+      checks.push(check('completion', 'task.completion-missing', task.completions.length > 0));
+      checks.push(check('execution', 'task.check-execution', !ownsTaskExecution(state, task)));
+    } else if (targetStatus === 'review' || targetStatus === 'done') {
+      let gate;
+      if (targetStatus === 'done' && task.status === 'review') {
+        gate = getTaskCompletion(state, task);
+      } else {
+        const editableTask = { ...task, status: 'in_progress', review: null };
+        const submission = getTaskReview(state, editableTask);
+        gate =
+          targetStatus === 'review'
+            ? submission
+            : getTaskCompletion(state, {
+                ...editableTask,
+                status: 'review',
+                review: {
+                  status: 'submitted',
+                  snapshot: submission.snapshot,
+                  requiredRelations: captureRequiredRelations(state, editableTask),
+                },
+              });
+      }
+      checks.push(...gate.checks.filter((item) => item.id !== 'status'));
+      snapshot = gate.snapshot;
+    } else {
+      checks.push(check('execution', 'task.check-execution', !ownsTaskExecution(state, task)));
+    }
+  }
+  return { checks, allowed: checks.every((item) => item.passed), snapshot };
+}
+
 const assertEditable = (task) => {
   requireThat(task.status !== 'review', 'task.withdraw-before-change');
   requireThat(['todo', 'in_progress'].includes(task.status), 'task.reopen-before-change');
@@ -314,6 +389,121 @@ const markPending = (task) => {
 
 export function applyTaskAction(state, task, action, emit) {
   switch (action.type) {
+    case 'ADD_TASK_COMMENT': {
+      requireThat(present(action.body), 'task.comment-required');
+      const body = action.body.trim();
+      requireThat(body.length <= 20000, 'task.comment-too-long');
+      const comment = {
+        id: idFor(task.comments, `${task.id}-comment`),
+        body,
+        createdAt: new Date().toISOString(),
+        author: 'You',
+      };
+      task.comments.push(comment);
+      emit(task.id, 'task.comment-added', { commentId: comment.id });
+      return true;
+    }
+    case 'CHANGE_TASK_STATUS': {
+      const fromStatus = task.status;
+      requireThat(action.expectedStatus === fromStatus, 'task.snapshot-changed');
+      const gate = getTaskStatusChange(state, task, action.status);
+      requireSnapshot(gate.snapshot, action);
+      requireGate(gate);
+      if (fromStatus === action.status) return true;
+      const quietly = () => {};
+      if (action.status === 'archived') {
+        applyTaskAction(state, task, { type: 'ARCHIVE_TASK' }, quietly);
+      } else if (fromStatus === 'archived') {
+        applyTaskAction(state, task, { type: 'RESTORE_TASK' }, quietly);
+      } else {
+        if (fromStatus === 'done') {
+          // An explicit status reopening retracts prior fulfillment. Parents keep
+          // their historical completion but must recheck the old child decision.
+          task.completions.forEach((completion) => {
+            completion.applicability = 'pending';
+          });
+          task.review = null;
+          task.status = 'in_progress';
+        } else if (fromStatus === 'review' && action.status !== 'done') {
+          if (task.review) {
+            task.review.status = 'withdrawn';
+            const original = task.reviews.find((review) => review.id === task.review.id);
+            if (original) Object.assign(original, task.review);
+          }
+          task.review = null;
+        }
+        if (action.status === 'done') {
+          if (task.status !== 'review') {
+            const submission = getTaskReview(state, task);
+            applyTaskAction(
+              state,
+              task,
+              {
+                type: 'SUBMIT_TASK_REVIEW',
+                expectedSnapshot: submission.snapshot,
+              },
+              quietly,
+            );
+          }
+          const completion = getTaskCompletion(state, task);
+          applyTaskAction(
+            state,
+            task,
+            {
+              type: 'COMPLETE_TASK',
+              expectedSnapshot: completion.snapshot,
+              criterionIds: action.criterionIds ?? [],
+            },
+            quietly,
+          );
+        } else if (action.status === 'review') {
+          const submission = getTaskReview(state, task);
+          applyTaskAction(
+            state,
+            task,
+            {
+              type: 'SUBMIT_TASK_REVIEW',
+              expectedSnapshot: submission.snapshot,
+            },
+            quietly,
+          );
+        } else {
+          task.status = action.status;
+          if (action.status === 'in_progress') task.hasStarted = true;
+        }
+        markPending(task);
+      }
+      emit(task.id, 'task.status-changed', { fromStatus, status: task.status });
+      return true;
+    }
+    case 'SAVE_TASK_BASICS': {
+      assertEditable(task);
+      if (action.expectedSnapshot !== undefined) requireSnapshot(taskSnapshot(task), action);
+      requireThat(present(action.title), 'task.title-required');
+      requireThat(
+        action.taskType === task.taskType ||
+          getTaskTypes(state).some((type) => type.id === action.taskType),
+        'task.invalid-type',
+      );
+      requireThat(typeof action.description === 'string', 'task.invalid-content');
+      const title = action.title.trim();
+      const description = action.description.trim();
+      if (
+        title === task.title &&
+        description === (task.description || '') &&
+        action.taskType === task.taskType
+      )
+        return true;
+      if (task.taskType !== action.taskType) {
+        requireThat(!ownsTaskExecution(state, task), 'task.check-execution');
+        task.typeHistory ??= [];
+        task.typeHistory.push(task.taskType);
+      }
+      if (title !== task.title) markPending(task);
+      Object.assign(task, { title, taskType: action.taskType, description });
+      emit(task.id, 'task.basics-saved');
+      return true;
+    }
     case 'UPDATE_TASK_TYPE':
       assertEditable(task);
       requireThat(
@@ -343,11 +533,8 @@ export function applyTaskAction(state, task, action, emit) {
     case 'SAVE_TASK_SCOPE': {
       assertEditable(task);
       requireThat(!ownsTaskExecution(state, task), 'task.check-execution');
-      requireThat(present(action.goal), 'task.check-goal');
-      requireThat(
-        Array.isArray(action.criteria) && action.criteria.length > 0,
-        'task.check-criteria',
-      );
+      requireThat(typeof action.goal === 'string', 'task.check-goal');
+      requireThat(Array.isArray(action.criteria), 'task.check-criteria');
       const criteria = action.criteria.map((c, index) => ({
         id: (typeof c === 'object' && c?.id) || `criterion-${index + 1}`,
         text: typeof c === 'string' ? c.trim() : c?.text?.trim(),
@@ -474,6 +661,8 @@ export function applyTaskAction(state, task, action, emit) {
         id: idFor(task.reviews, `${task.id}-review`),
         status: 'submitted',
         snapshot: gate.snapshot,
+        title: task.title,
+        description: task.description || '',
         scopeRevision: task.scopeRevision,
         scope: { goal: task.goal, criteria: structuredClone(task.criteria) },
         taskType: task.taskType,

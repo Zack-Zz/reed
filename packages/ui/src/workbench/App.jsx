@@ -125,6 +125,7 @@ export function App() {
           'SET_TASK_WORKFLOW',
           'SKIP_WORKFLOW_STEP',
           'REOPEN_TASK',
+          'CHANGE_TASK_STATUS',
           'SAVE_TASK_SCOPE',
           'LINK_TASK',
           'CREATE_RELATED_TASK',
@@ -412,7 +413,7 @@ export function App() {
               className={filter === 'archived' ? 'active' : ''}
             >
               <Archive size={16} />
-              {tr('已归档')}
+              {tr('归档')}
             </button>
           </div>
         )}

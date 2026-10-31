@@ -69,33 +69,36 @@ function renderTask(
 describe('unified task presentation', () => {
   it('shows task scope and criteria without a default development phase navigation', () => {
     const html = renderTask();
-    expect(html).toContain('目标说明与验收条件');
+    expect(html).toContain('任务内容');
+    expect(html).toContain('验收条件');
     expect(html).toContain('整理可复核的操作说明');
     expect(html).toContain('覆盖所有操作入口');
     expect(html).not.toContain('aria-label="任务阶段"');
     expect(html).not.toContain('class="stage-nav"');
-    expect(html).toContain('开始处理');
+    expect(html).toContain('aria-label="切换任务状态"');
   });
   it('labels navigation back to the relationship canvas in full task details', () => {
     expect(renderTask('in_progress', false, 'en', 'detail', {}, 'relations')).toContain(
       '>Task relationships</button>',
     );
   });
-  it('offers task-level manual artifacts and review in Processing', () => {
+  it('uses task status and comments instead of separate result and review actions', () => {
     const html = renderTask('in_progress');
-    expect(html).toContain('提交产物');
-    expect(html).toContain('提交任务评审');
-    expect(html).toContain('处理记录');
-    expect(html).toContain('关联资源');
+    expect(html).toContain('aria-label="切换任务状态"');
+    expect(html).toContain('添加评论');
+    expect(html).not.toContain('填写处理结果');
+    expect(html).not.toContain('提交任务评审');
+    expect(html).toContain('最近活动');
   });
   it('only shows internal steps for an explicitly selected workflow', () => {
     expect(renderTask('in_progress', true)).toContain('aria-label="内部流程步骤"');
     expect(renderTask('in_progress')).not.toContain('aria-label="内部流程步骤"');
   });
-  it('presents completed work with archive and reasoned reopen actions', () => {
+  it('keeps completed task content free of archive and reopen buttons until the menu opens', () => {
     const html = renderTask('done');
-    expect(html).toContain('归档任务');
-    expect(html).toContain('重新打开任务');
+    expect(html).toContain('aria-label="任务更多操作"');
+    expect(html).not.toContain('>归档任务</button>');
+    expect(html).not.toContain('>重新打开任务</button>');
     expect(html).not.toContain('>提交产物<');
   });
   it('filters task type and lifecycle separately, without a phase filter', () => {
@@ -104,9 +107,10 @@ describe('unified task presentation', () => {
     expect(html).toContain('aria-label="任务状态筛选"');
     expect(html).not.toContain('aria-label="阶段筛选"');
   });
-  it('keeps type editable before review and read-only after completion', () => {
-    expect(renderTask('todo')).toContain('aria-label="修改任务类型"');
-    expect(renderTask('done')).not.toContain('aria-label="修改任务类型"');
+  it('uses explicit editing before review and read-only information after completion', () => {
+    expect(renderTask('todo')).toContain('>编辑任务</button>');
+    expect(renderTask('todo')).not.toContain('aria-label="修改任务类型"');
+    expect(renderTask('done')).not.toContain('>编辑任务</button>');
   });
   it('retains Done while warning that completion evidence needs checking', () => {
     const html = renderTask('done', false, 'zh-CN', 'detail', {
@@ -114,12 +118,19 @@ describe('unified task presentation', () => {
     });
     expect(html).toContain('status-done');
     expect(html).toContain('完成依据待复核');
-    expect(html).toContain('重新打开任务');
+    expect(html).toContain('aria-label="任务更多操作"');
   });
-  it('restores archived tasks to Done before offering a separate reopen', () => {
+  it('does not label a reopened task in the list as a pending completion', () => {
+    const html = renderTask('in_progress', false, 'zh-CN', 'list', {
+      completions: [{ id: 'completion-1', applicability: 'pending' }],
+    });
+    expect(html).not.toContain('完成依据待复核');
+  });
+  it('lets archived tasks restore through their status and still receive comments', () => {
     const html = renderTask('archived');
-    expect(html).toContain('恢复归档');
-    expect(html).toContain('恢复后仍为已完成');
+    expect(html).toContain('aria-label="切换任务状态"');
+    expect(html).toContain('添加评论');
+    expect(html).not.toContain('>恢复归档</button>');
     expect(html).not.toContain('>重新打开任务<');
   });
   it('does not relabel an Agent review artifact as a manual submission', () => {
@@ -139,8 +150,9 @@ describe('unified task presentation', () => {
   });
   it('localizes the task-level scope and review actions', () => {
     const html = renderTask('in_progress', false, 'en');
-    expect(html).toContain('Goal and acceptance criteria');
-    expect(html).toContain('Submit task review');
+    expect(html).toContain('Task content');
+    expect(html).toContain('Change task status');
+    expect(html).toContain('Add a comment');
   });
 });
 
@@ -219,11 +231,12 @@ describe('task-level confirmation dialogs', () => {
   });
   it('shows unified missing conditions without enabling submit or leaking rule keys', () => {
     const html = renderDialog('task-review', 'in_progress', {
+      title: '',
       goal: '',
       scopeRevision: 0,
       docs: [],
     });
-    expect(html).toContain('目标已明确并保存为当前范围');
+    expect(html).toContain('任务标题与类型有效');
     expect(html).toContain('卡片保持原位');
     expect(html).not.toContain('task.check-');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>确认提交评审/);
