@@ -10,6 +10,7 @@ Before implementation, follow the [development standards](docs/engineering/stand
 module ownership, language-specific test organization, TDD, scoped checks and the
 handoff template. Read the owning module's `BOUNDARY.md` as well. An optional
 repository-local entry is [reed-development](skills/reed-development/SKILL.md).
+For Claude Code, use the [project setup and loading checks](docs/engineering/claude-code.md).
 
 ## Current development setup
 

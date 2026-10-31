@@ -34,6 +34,7 @@ For actual commands and outputs, see [development/builds](engineering/developmen
 [shared frontend development](engineering/frontend.md).
 
 For a new assignment, start with [development standards and agent workflow](engineering/standards.md).
+Claude Code users can follow the [project setup and loading checks](engineering/claude-code.md).
 The [Codex CLI / Tauri practice comparison](references/engineering-practices.md) records
 observed upstream examples and Reed's choices; it is not another rulebook.
 

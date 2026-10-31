@@ -7,6 +7,8 @@ description: Develop or review changes in the Reed repository using its module b
 
 Use this repository-local entry when handing Reed work to a Code Agent. It can be
 read explicitly; placing it here does not prove automatic discovery by any host.
+Claude Code has a thin [project entry](../../.claude/skills/reed-development/SKILL.md);
+see the [setup and loading checks](../../docs/engineering/claude-code.md).
 
 1. Establish the actual repository root, branch, HEAD and existing changes. Identify
    whether the user requested analysis, implementation or a Git/release operation.

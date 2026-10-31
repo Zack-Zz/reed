@@ -8,6 +8,7 @@ Reed 当前处于基础建设阶段。先阅读[架构](docs/architecture/overvi
 
 实施前按[开发规范](docs/engineering/standards.zh-CN.md)核对模块归属、语言对应的测试组织、TDD、验证范围和交接模板，
 同时阅读所属模块的 `BOUNDARY.md`。仓库内可选执行入口为 [reed-development](skills/reed-development/SKILL.md)。
+Claude Code 的项目入口及加载检查见[使用指南](docs/engineering/claude-code.zh-CN.md)。
 
 ## 当前开发准备
 
