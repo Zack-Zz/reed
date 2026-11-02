@@ -179,7 +179,7 @@ export function SettingsControl({ theme, setTheme, dark, openAbout, openConfigur
                   }}
                 >
                   <GearSix size={15} />
-                  <span>{t('config.title')}</span>
+                  <span>{t('config.types')}</span>
                   <CaretRight size={13} />
                 </button>
               )}

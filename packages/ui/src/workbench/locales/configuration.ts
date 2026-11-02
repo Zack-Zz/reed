@@ -11,6 +11,14 @@ const copy = {
     'Manage task categories and reusable internal workflows.',
   ],
   types: ['任务类型', 'Task types'],
+  typesSubtitle: [
+    '维护任务类型的名称、图标和可用状态。',
+    'Manage task type names, icons and availability.',
+  ],
+  typesOnlyHint: [
+    '任务类型用于分类，不影响任务生命周期。',
+    'Task types categorize tasks without changing their lifecycle.',
+  ],
   templates: ['流程模板', 'Workflow templates'],
   back: ['返回设置', 'Back to settings'],
   backTemplates: ['返回流程模板', 'Back to templates'],

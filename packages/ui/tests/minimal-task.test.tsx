@@ -14,7 +14,6 @@ import { createMockWorkbenchRuntime } from '../src/mock';
 import { TaskStatusChangePanel } from '../src/workbench/TaskStatusControl';
 import { taskEventText } from '../src/workbench/ui.jsx';
 import { createTranslator } from '../src/workbench/i18n-core.js';
-import { getStageReview } from '../src/mock/personal-board.js';
 
 function scenario() {
   let model = reduce(createInitialState(), { type: 'CREATE_TASK', title: '更新项目说明' });
@@ -57,46 +56,6 @@ function scenario() {
 }
 
 describe('minimal task', () => {
-  it.each(['passed', 'failed'])(
-    'keeps manual %s workflow results confirmable before direct completion',
-    (outcome) => {
-      const s = scenario();
-      s.act('START_TASK');
-      s.act('SET_TASK_WORKFLOW', { templateId: 'development' });
-      for (let stage = 0; stage < 4; stage++) {
-        expect(s.render()).toContain('>提交产物</button>');
-        s.act('ADD_TASK_ARTIFACT', {
-          title: `步骤${stage}.md`,
-          body: '如实记录本步骤结果',
-          outcome,
-          coverageComplete: true,
-        });
-        const doc = s.task().docs.at(-1);
-        expect(
-          getStageReview(s.model(), s.task()).checks.every(
-            (check: { passed: boolean }) => check.passed,
-          ),
-        ).toBe(true);
-        const button = s.render().match(/<button[^>]*>确认内部步骤<\/button>/)?.[0];
-        expect(button).toBeDefined();
-        expect(button).not.toContain('disabled');
-        s.act('ACCEPT_STAGE', {
-          expectedStage: stage,
-          documentId: doc.id,
-          documentVersion: doc.version,
-        });
-      }
-      const gate = getTaskStatusChange(s.model(), s.task(), 'done');
-      expect(gate.allowed).toBe(true);
-      s.act('CHANGE_TASK_STATUS', {
-        status: 'done',
-        expectedStatus: 'in_progress',
-        expectedSnapshot: gate.snapshot,
-      });
-      expect(s.task().status).toBe('done');
-      expect(s.task().docs.every((doc: { outcome: string }) => doc.outcome === outcome)).toBe(true);
-    },
-  );
   it('completes, archives, restores and reopens with only a title, type and lifecycle', () => {
     const s = scenario();
     expect(s.task().taskType).toBe('uncategorized');
@@ -175,7 +134,10 @@ describe('minimal task', () => {
       const html = s.render(null, locale);
       expect(html).toContain(locale === 'en' ? 'Task content' : '任务内容');
       expect(html).toContain(locale === 'en' ? 'Edit task' : '编辑任务');
-      expect(html).toContain(locale === 'en' ? 'Add acceptance criteria' : '添加验收条件');
+      expect(html).toContain(
+        locale === 'en' ? 'Add goal and acceptance criteria' : '添加目标与验收条件',
+      );
+      expect(html).toContain(locale === 'en' ? 'No task goal yet.' : '未填写任务目标。');
       expect(html).toContain(locale === 'en' ? 'Task type: Uncategorized' : '任务类型：未分类');
       expect(html).toContain(
         locale === 'en' ? 'No acceptance criteria configured.' : '未设置验收条件。',
@@ -204,7 +166,7 @@ describe('minimal task', () => {
     expect(html).toContain('暂无评论');
     expect(html).toContain('添加评论');
     expect(html).toContain('暂无关联');
-    expect(html).not.toContain('>添加验收条件</button>');
+    expect(html).not.toContain('>添加目标与验收条件</button>');
     expect(html).not.toContain('>关联任务</button>');
     expect(s.task().criteria).toEqual([]);
     expect(s.task().docs).toEqual([]);
@@ -338,14 +300,21 @@ describe('minimal task', () => {
     expect(getTaskReview(s.model(), s.task()).allowed).toBe(false);
   });
 
-  it('shows automatically recorded activity and keeps optional criteria editable without a goal field', () => {
+  it('lets a title-only task add a goal from the detail editor', () => {
     const s = scenario();
     s.act('START_TASK');
     expect(s.render()).toContain('已开始处理任务');
+    const detail = s.render();
+    expect(detail).toContain('目标说明与验收条件');
+    expect(detail).toContain('未填写任务目标。');
+    expect(detail).toContain('添加目标与验收条件');
     const html = s.render('task-scope');
-    expect(html).toContain('验收条件（选填）');
-    expect(html).not.toContain('name="goal"');
+    expect(html).toContain('任务目标');
+    expect(html).toContain('name="goal"');
+    expect(html).toContain('目标说明与验收条件');
     expect(html).toMatch(/<button class="primary" type="submit">保存任务范围/);
+    s.act('SAVE_TASK_SCOPE', { goal: '补齐可验收的目标', criteria: [] });
+    expect(s.render()).toContain('补齐可验收的目标');
   });
 
   it('marks a changed source-backed title pending through the new editor without changing remote facts', () => {

@@ -78,7 +78,6 @@ export function Dialogs({ ctx }) {
   if (['create', 'task-context'].includes(modal.type))
     return (
       <LocalTaskDialog
-        onManageConfiguration={() => ctx.openConfiguration?.('templates')}
         key={modal.type === 'create' ? 'create-local' : task.id}
         task={modal.type === 'task-context' ? task : undefined}
         model={model}

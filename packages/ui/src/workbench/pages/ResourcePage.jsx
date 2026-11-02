@@ -120,11 +120,8 @@ export function ResourceView({ ctx, view, scope, setScope, resource, setResource
                   <CaretRight size={15} />
                 </button>
               </dd>
-              <dt>{tr('当前阶段')}</dt>
-              <dd>
-                {tr(owner.workflow?.stepLabels[owner.stage] || 'task.processing')} ·{' '}
-                {tr(taskStatus(owner))}
-              </dd>
+              <dt>{tr('任务状态')}</dt>
+              <dd>{tr(taskStatus(owner))}</dd>
               {sessionMode ? (
                 <>
                   <dt>{tr('执行归属')}</dt>

@@ -80,6 +80,30 @@ function render(tab: 'types' | 'templates' = 'types', locale = 'zh-CN') {
   );
 }
 describe('workflow configuration settings', () => {
+  it.each(['zh-CN', 'en'])(
+    'keeps type-only maintenance independent from workflows in %s',
+    (locale) => {
+      const html = renderToStaticMarkup(
+        <I18nProvider initialLocale={locale}>
+          <WorkflowConfigurationPage
+            model={model}
+            act={vi.fn()}
+            close={vi.fn()}
+            initialTab="templates"
+            typesOnly
+          />
+        </I18nProvider>,
+      );
+      expect(html).toContain(locale === 'en' ? 'New task type' : '新建任务类型');
+      expect(html).toContain('My writing');
+      expect(html).toContain(locale === 'en' ? 'Used by 1 task(s)' : '已被 1 个任务使用');
+      expect(html).not.toContain('role="tablist"');
+      expect(html).not.toContain(locale === 'en' ? 'Workflow templates' : '流程模板');
+      expect(html).not.toContain(locale === 'en' ? 'Tasks and workflows' : '任务与流程');
+      expect(html).not.toContain('Personal draft');
+      expect(html).not.toContain(locale === 'en' ? 'Recommended templates' : '推荐流程模板');
+    },
+  );
   it('shows independent tabs and task type controls with usage restrictions', () => {
     const html = render();
     expect(html).toContain('任务与流程');

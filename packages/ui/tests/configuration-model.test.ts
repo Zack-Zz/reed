@@ -525,66 +525,6 @@ it('does not publish unchanged content even when the published definition was ex
   expect(state).toEqual(before);
 });
 
-it('continues a pinned task through acceptance after its type and template are disabled and a successor is published', () => {
-  let state = createTemplate(createInitialState(), 1);
-  const templateId = state.configuration.templates.at(-1).id;
-  state = reduce(state, {
-    type: 'SAVE_TASK_TYPE',
-    definition: {
-      name: '独立复核',
-      description: '',
-      icon: 'review',
-      recommendedTemplateIds: [templateId],
-    },
-  });
-  const typeId = state.configuration.taskTypes.at(-1).id;
-  state = reduce(state, {
-    type: 'CREATE_TASK',
-    title: '停用后完成原承诺',
-    taskType: typeId,
-    templateId,
-    templateVersion: 1,
-  });
-  const id = state.tasks.at(-1).id;
-  const adopted = structuredClone(taskOf(state, id).workflow);
-  state = reduce(state, {
-    type: 'SAVE_WORKFLOW_TEMPLATE',
-    templateId,
-    expectedRevision: 1,
-    publish: true,
-    definition: { ...definition(1), description: '新版追加的要求', steps: definition(2).steps },
-  });
-  state = reduce(state, { type: 'SET_TASK_TYPE_ENABLED', typeId, enabled: false });
-  state = reduce(state, { type: 'SET_WORKFLOW_TEMPLATE_ENABLED', templateId, enabled: false });
-  state = createMockWorkbenchRuntime({
-    storage: { getItem: () => JSON.stringify({ version: 3, model: state }), setItem() {} },
-  }).load();
-  expect(taskOf(state, id).workflow).toEqual(adopted);
-  state = act(state, id, 'START_TASK');
-  state = act(state, id, 'SAVE_TASK_SCOPE', { goal: '原版本约定', criteria: ['结果可核查'] });
-  state = act(state, id, 'ADD_TASK_ARTIFACT', {
-    title: '原约定报告.md',
-    body: '原范围独立复核结果',
-    coverageComplete: true,
-  });
-  const doc = taskOf(state, id).docs.at(-1);
-  state = act(state, id, 'ACCEPT_STAGE', {
-    expectedStage: 0,
-    documentId: doc.id,
-    documentVersion: doc.version,
-  });
-  state = act(state, id, 'SUBMIT_TASK_REVIEW', {
-    expectedSnapshot: getTaskReview(state, taskOf(state, id)).snapshot,
-  });
-  state = act(state, id, 'COMPLETE_TASK', {
-    expectedSnapshot: getTaskCompletion(state, taskOf(state, id)).snapshot,
-    criterionIds: taskOf(state, id).criteria.map((c: any) => c.id),
-  });
-  expect(taskOf(state, id).status).toBe('done');
-  expect(taskOf(state, id).workflow).toEqual(adopted);
-  expect(taskOf(state, id).reviews[0].taskTypeName).toBe('独立复核');
-});
-
 it('round-trips carried duplicate and multiline criteria without invalidating scope or evidence', () => {
   let state = reduce(createInitialState(), {
     type: 'SAVE_WORKFLOW_TEMPLATE',

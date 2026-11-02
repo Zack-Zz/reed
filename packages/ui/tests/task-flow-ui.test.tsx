@@ -90,9 +90,9 @@ describe('unified task presentation', () => {
     expect(html).not.toContain('提交任务评审');
     expect(html).toContain('最近活动');
   });
-  it('only shows internal steps for an explicitly selected workflow', () => {
-    expect(renderTask('in_progress', true)).toContain('aria-label="内部流程步骤"');
-    expect(renderTask('in_progress')).not.toContain('aria-label="内部流程步骤"');
+  it('does not render the removed internal workflow section', () => {
+    expect(renderTask('in_progress', true)).not.toContain('aria-label="内部流程步骤"');
+    expect(renderTask('in_progress', true)).not.toContain('选择内部流程');
   });
   it('keeps completed task content free of archive and reopen buttons until the menu opens', () => {
     const html = renderTask('done');
@@ -241,12 +241,6 @@ describe('task-level confirmation dialogs', () => {
     expect(html).not.toContain('task.check-');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>确认提交评审/);
   });
-  it('offers optional workflow adoption with an explicit no-workflow choice', () => {
-    const html = renderDialog('task-workflow');
-    expect(html).toContain('无内部流程');
-    expect(html).toContain('研发流程');
-    expect(html).toContain('不选流程也可以人工处理');
-  });
   it('keeps manual submission distinct from execution results and requires work coverage confirmation', () => {
     const html = renderDialog('task-artifact', 'in_progress', {}, 'en');
     expect(html).toContain('Manual submission');
@@ -315,78 +309,6 @@ it.each(['zh-CN', 'en'])(
     expect(html).not.toContain('relation.');
   },
 );
-it('shows an optional-step skip and its reason distinctly from performed work', () => {
-  const html = renderTask('in_progress', false, 'zh-CN', 'detail', {
-    stage: 0,
-    scopeRevision: 1,
-    workflow: {
-      templateId: 'personal-review',
-      instanceId: 'flow-one',
-      version: 1,
-      name: '复核流程',
-      stepLabels: ['复核'],
-      steps: [
-        {
-          id: 'optional',
-          name: '复核',
-          goal: '复核材料',
-          instructions: '',
-          outputs: [],
-          checks: [],
-          required: false,
-          mode: 'manual',
-        },
-      ],
-    },
-    accepted: [true],
-    stepSkips: [
-      {
-        instanceId: 'flow-one',
-        stepId: 'optional',
-        scopeRevision: 1,
-        reason: '本次无需额外复核',
-        applicability: 'valid',
-      },
-    ],
-  });
-  expect(html).toContain('已跳过');
-  expect(html).toContain('本次无需额外复核');
-});
-
-it.each(['zh-CN', 'en'])(
-  'retains optional-step skip decisions and reasons after workflow replacement in %s',
-  (locale) => {
-    const html = renderTask('in_progress', false, locale, 'detail', {
-      workflowHistory: [
-        {
-          workflow: {
-            templateId: 'old',
-            instanceId: 'old-1',
-            name: '原复核流程',
-            version: 1,
-            stepLabels: ['可选复核'],
-            steps: [{ id: 'review', required: false }],
-          },
-          accepted: [true],
-          stage: 0,
-          reason: '改为直接处理',
-          stepSkips: [
-            {
-              instanceId: 'old-1',
-              stepId: 'review',
-              applicability: 'valid',
-              reason: '本轮已有独立复核',
-            },
-          ],
-        },
-      ],
-    });
-    expect(html).toContain(locale === 'en' ? 'Skipped' : '已跳过');
-    expect(html).toContain('本轮已有独立复核');
-    expect(html).not.toContain(locale === 'en' ? '可选复核 (Confirmed)' : '可选复核 (已确认)');
-  },
-);
-
 it('keeps equal-text and multiline acceptance criteria as independent editable entries', () => {
   const model = createInitialState();
   const task = model.tasks.find((item: { id: string }) => item.id === 'LOCAL-1');
@@ -408,35 +330,4 @@ it('keeps equal-text and multiline acceptance criteria as independent editable e
   );
   expect(html.match(/name="criteria"/g)).toHaveLength(3);
   expect(html).toContain('复核边界\n保留执行证据</textarea>');
-});
-
-it('shows invalidated skip history without treating it as the accepted decision', () => {
-  const html = renderTask('in_progress', false, 'en', 'detail', {
-    workflowHistory: [
-      {
-        workflow: {
-          templateId: 'old',
-          instanceId: 'old-1',
-          name: '原复核流程',
-          version: 1,
-          stepLabels: ['可选复核'],
-          steps: [{ id: 'review', required: false }],
-        },
-        accepted: [false],
-        stage: 0,
-        reason: '变更流程',
-        stepSkips: [
-          {
-            instanceId: 'old-1',
-            stepId: 'review',
-            applicability: 'invalidated',
-            reason: '原范围曾经免复核',
-          },
-        ],
-      },
-    ],
-  });
-  expect(html).toContain('原范围曾经免复核');
-  expect(html).toContain('Previous skip no longer applies');
-  expect(html).not.toContain('可选复核 (Skipped)');
 });

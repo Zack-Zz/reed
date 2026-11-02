@@ -39,6 +39,12 @@ Legacy step completion is not converted into task acceptance: content and origin
 Missing or unreadable drafts fall back to the existing samples; failed writes keep
 in-memory state and report save failure. Browser and Tauri stores remain separate.
 
+2026-11-01: the optional per-task workflow (internal steps/templates) was removed from the
+task UI; task flow is represented by linked tasks. Task description, goal, artifact content
+and comments use Markdown with image paste/upload/link support; mock images are stored as
+size-limited data URLs, and documents remain read-only. Legacy workflow data is retained for
+history but no longer gates completion.
+
 The Demo Tauri build flavor retains `dev.reed.desktop.demo` and its local origin;
 rebuilding it does not reset existing preview data. It now loads the same frontend
 as the normal Desktop build. This is not shared Core storage or a production sync
@@ -162,22 +168,41 @@ new-scope work preserves the earlier fulfillment. Artifacts with the same name i
 different workflow steps remain separate review inputs. These are mock adapter and
 presentation rules; they do not establish a Core protocol or real execution behavior.
 
-## Local task and workflow configuration
+## Task type configuration
 
-Settings → Tasks and workflows opens the shared configuration page. Task types support
-custom names, icons, ordering, recommendations and disabling. Templates support drafts,
-step editing, version previews, copying and enabling or disabling. New tasks explicitly
-select a published version, while adopted tasks retain their snapshot after later changes.
+Settings → Task types opens the shared type-maintenance page. Users can maintain
+names, icons, order and enabled state. The product entry hides workflow templates
+and recommended-template editing; existing historical definitions and task data
+are retained. Mock configuration rules stay in `src/mock/configuration.ts`.
+The earlier [configuration verification record](workflow-configuration-ui-verification.md)
+records the former template UI and does not establish the current product entry.
+Configuration remains a browser mock draft, without Core storage or cross-shell sync.
 
-Changing a task workflow previews its impact and requires a reason. Unfinished required
-work remains in task acceptance criteria; reviewed reusable versions become task material.
-Step acceptance is independent of task completion. Optional work needs completion or a
-reasoned skip. Agent artifact coverage is explicitly confirmed without changing provenance.
-Artifact identity includes its workflow context; historical material is retained.
+## Markdown image editing
 
-`src/mock/configuration.ts` owns mock configuration rules, while the typed UI seam and
-pages remain in `src/workbench`. TypeScript source imports support the existing Node mock
-tests; independent builds still expose ordinary ESM. Configuration and tasks remain browser
-mock drafts, without Core storage, real Agent dispatch or cross-shell synchronization.
-See the [configuration verification record](workflow-configuration-ui-verification.md)
-(internal Chinese) for this iteration's tests, browser evidence and limits.
+Image processing blocks the containing form's submission until insertion finishes.
+Closing the editor discards late results. Every programmatic insertion checks the
+final field length first; a rejected insertion preserves the original text.
+File names and parenthesized URLs round-trip through the same inline Markdown reader.
+
+Both Desktop variants allow HTTP(S) images in `img-src`, matching the Web editor;
+external image URLs make normal image requests when rendered. Script and connection
+sources retain their existing restrictions. The [Tauri CSP mechanism](https://v2.tauri.app/security/csp/)
+applies this policy to packaged pages; frontend builds alone are not native runtime
+verification. Uploads remain size-limited data URLs in the local mock store.
+
+The DOM interaction tests use pinned jsdom 26.1.0 as a development-only dependency
+for pending submission, cancellation and insertion limits. They do not replace
+browser or native image-decoding and network validation.
+
+## Task detail presentation
+
+Task content appears directly below the title and metadata, followed by the separate
+optional goal and acceptance criteria, comments and activity. Existing metadata,
+completion records, editing permissions and operation callbacks are retained.
+Relationships, task context and linked resources occupy one supporting area: a side
+column on wide full-page views, and a single section below the reading area in the
+drawer or a narrow window. Each document is listed once, including all versions,
+execution results, scope labels and the existing review/reuse action. Empty fields
+keep their viewing positions with compact spacing. This is a presentation change;
+the mock business rules and storage format are unchanged by this layout pass.

@@ -32,6 +32,34 @@ export function TaskRelationsSummary({ ctx, onLink }: Props) {
     (relation) =>
       relation.active !== false && [relation.fromTaskId, relation.toTaskId].includes(ctx.task.id),
   );
+  const groups: {
+    key: string;
+    label: string;
+    items: { relation: (typeof relations)[number]; target: RelationTask; kind: string }[];
+  }[] = [
+    { key: 'upstream', label: '上游任务', items: [] },
+    { key: 'downstream', label: '下游任务', items: [] },
+    { key: 'related', label: '相关任务', items: [] },
+  ];
+  for (const relation of relations) {
+    const outgoing = relation.fromTaskId === ctx.task.id;
+    const target = ctx.model.tasks.find(
+      (task) => task.id === (outgoing ? relation.toTaskId : relation.fromTaskId),
+    );
+    if (!target) continue;
+    const kind =
+      relation.kind === 'child'
+        ? outgoing
+          ? 'child'
+          : 'parent'
+        : relation.kind === 'dependency'
+          ? outgoing
+            ? 'dependency'
+            : 'dependent'
+          : 'related';
+    const groupKey = kind === 'related' ? 'related' : outgoing ? 'downstream' : 'upstream';
+    groups.find((group) => group.key === groupKey)?.items.push({ relation, target, kind });
+  }
   return (
     <section className={`task-flow-section${relations.length ? '' : ' task-supplement-empty'}`}>
       <div className="section-title">
@@ -50,35 +78,25 @@ export function TaskRelationsSummary({ ctx, onLink }: Props) {
         </div>
       </div>
       {!relations.length && <p className="muted">{t('minimal.noRelations')}</p>}
-      {relations.map((relation) => {
-        const outgoing = relation.fromTaskId === ctx.task.id;
-        const target = ctx.model.tasks.find(
-          (task) => task.id === (outgoing ? relation.toTaskId : relation.fromTaskId),
-        );
-        if (!target) return null;
-        const kind =
-          relation.kind === 'child'
-            ? outgoing
-              ? 'child'
-              : 'parent'
-            : relation.kind === 'dependency'
-              ? outgoing
-                ? 'dependency'
-                : 'dependent'
-              : 'related';
-        return (
-          <button
-            className="task-relation-summary"
-            key={relation.id}
-            onClick={() => ctx.openTask?.(target.id)}
-          >
-            <span className="muted">{t(`minimal.${kind}`)}</span>
-            <strong>{target.title}</strong>
-            <Status value={target.status} text={taskStatus(target)} />
-            {relation.required && <small>{t('relation.required')}</small>}
-          </button>
-        );
-      })}
+      {groups.map((group) =>
+        group.items.length ? (
+          <div className="task-relation-group" key={group.key}>
+            <p className="muted">{t(group.label)}</p>
+            {group.items.map(({ relation, target, kind }) => (
+              <button
+                className="task-relation-summary"
+                key={relation.id}
+                onClick={() => ctx.openTask?.(target.id)}
+              >
+                <span className="muted">{t(`minimal.${kind}`)}</span>
+                <strong>{target.title}</strong>
+                <Status value={target.status} text={taskStatus(target)} />
+                {relation.required && <small>{t('relation.required')}</small>}
+              </button>
+            ))}
+          </div>
+        ) : null,
+      )}
     </section>
   );
 }

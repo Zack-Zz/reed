@@ -5,6 +5,7 @@ import { CheckCircle, WarningCircle, Plus, Trash } from '@phosphor-icons/react';
 import { useWorkbenchRuntime } from './runtime-context';
 import { useI18n } from './i18n.jsx';
 import { Modal, Field, Markdown, artifactOutcomeLabel } from './ui.jsx';
+import { MarkdownEditor } from './MarkdownEditor';
 import { Select } from './Select.jsx';
 import { SourceBadge } from './SourceBadge.jsx';
 
@@ -131,10 +132,12 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
   const [skipStage] = useState(task.stage);
   const [template, setTemplate] = useState(task.workflow?.templateId || '');
   const [confirmed, setConfirmed] = useState(false);
+  const [imagePending, setImagePending] = useState(false);
   const [accepted, setAccepted] = useState<string[]>([]);
   const [acceptSteps, setAcceptSteps] = useState(false);
   const [error, setError] = useState('');
   const finish = (type: string, fields: Record<string, unknown>, message: string) => {
+    if (imagePending) return;
     if (run(type, fields, message)) close();
     else setError('任务或材料已发生变化，请重新核对流转条件。');
   };
@@ -225,7 +228,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
 
   if (modal.type === 'task-scope')
     return (
-      <Modal title={t('minimal.criteriaOptional')} close={close} wide>
+      <Modal title={t('目标说明与验收条件')} close={close} wide>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -241,18 +244,21 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
           }}
         >
           <div className="modal-body task-flow-form">
-            <p className="footnote">{t('minimal.criteriaHint')}</p>
-            {task.goal && (
-              <label className="field">
-                {t('任务目标')}
-                <textarea
-                  name="goal"
-                  rows={4}
-                  value={goal}
-                  onChange={(event) => setGoal(event.target.value)}
-                />
-              </label>
-            )}
+            <p className="footnote">
+              {t('目标说明和验收条件都可留空；留空时可直接将任务设为已完成。')}
+            </p>
+            <div className="field">
+              <span>{t('任务目标')}</span>
+              <MarkdownEditor
+                name="goal"
+                value={goal}
+                onChange={setGoal}
+                onPendingChange={setImagePending}
+                rows={4}
+                placeholder={t('说明要完成什么、范围边界或判断标准……')}
+                ariaLabel={t('任务目标')}
+              />
+            </div>
             <section className="scope-criteria-editor" aria-label={t('必要验收条件')}>
               <div className="section-title">
                 <h3>{t('必要验收条件')}</h3>
@@ -335,7 +341,7 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
           </div>
           <footer className="modal-actions">
             <Cancel />
-            <button className="primary" type="submit" disabled={!scopeEditable}>
+            <button className="primary" type="submit" disabled={imagePending || !scopeEditable}>
               {t('保存任务范围')}
             </button>
           </footer>
@@ -364,16 +370,18 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
               value={title}
               onChange={(event: { target: { value: string } }) => setTitle(event.target.value)}
             />
-            <label className="field">
-              {t('产物内容与执行说明')}
-              <textarea
+            <div className="field">
+              <span>{t('产物内容与执行说明')}</span>
+              <MarkdownEditor
                 name="body"
-                required
-                rows={10}
                 value={body}
-                onChange={(event) => setBody(event.target.value)}
+                onChange={setBody}
+                onPendingChange={setImagePending}
+                rows={10}
+                required
+                ariaLabel={t('产物内容与执行说明')}
               />
-            </label>
+            </div>
             <label className="field">
               {t('真实执行结果')}
               <Select
@@ -405,7 +413,9 @@ function TaskFlowDialog({ ctx }: { ctx: Context }) {
             <button
               type="submit"
               className="primary"
-              disabled={task.status !== 'in_progress' || !title.trim() || !body.trim()}
+              disabled={
+                imagePending || task.status !== 'in_progress' || !title.trim() || !body.trim()
+              }
             >
               {t('保存产物')}
             </button>

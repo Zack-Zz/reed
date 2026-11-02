@@ -9,7 +9,16 @@ import {
   ListBullets,
   SquaresFour,
 } from '@phosphor-icons/react';
-import { needsAttention, taskStatus, taskTypeLabel, activity, IconButton, Status } from '../ui.jsx';
+import {
+  needsAttention,
+  taskStatus,
+  taskTypeLabel,
+  activity,
+  IconButton,
+  Status,
+  Priority,
+  formatTimestamp,
+} from '../ui.jsx';
 import { SourceBadge } from '../SourceBadge.jsx';
 
 function TaskCounts({ task }) {
@@ -34,7 +43,7 @@ function TaskCounts({ task }) {
 export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
   const { getTaskTypes, TASK_STATUSES, BOARD_COLUMNS, getOriginInfo } =
     useWorkbenchRuntime().services;
-  const { t: tr } = useI18n();
+  const { t: tr, locale } = useI18n();
   const { model, openTask, setModal } = ctx;
   const TASK_TYPES = getTaskTypes(model, true);
   const { query, source, taskType = 'all', status = 'all', board } = listUi;
@@ -237,7 +246,7 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
         <div className="task-table">
           <div className="table-head">
             <span>{tr('任务')}</span>
-            <span>{tr('任务类型')}</span>
+            <span>{tr('优先级')}</span>
             <span>{tr('任务状态')}</span>
             <span>{tr('关联内容')}</span>
             <span />
@@ -258,8 +267,25 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
                   t.completions?.at(-1)?.applicability === 'pending' && (
                     <small className="basis-warning">{tr('完成依据待复核')}</small>
                   )}
+                <small className="task-metadata">
+                  <span>
+                    {tr('负责人')} · {t.owner === 'self' ? tr('minimal.you') : tr('未指定')}
+                  </span>
+                  {t.createdAt && (
+                    <span>
+                      {tr('创建于')} {formatTimestamp(t.createdAt, locale)}
+                    </span>
+                  )}
+                  {t.updatedAt && (
+                    <span>
+                      {tr('最近修改')} {formatTimestamp(t.updatedAt, locale)}
+                    </span>
+                  )}
+                </small>
               </span>
-              <span className="task-type">{taskTypeLabel(t, model, tr)}</span>
+              <span className="task-type">
+                <Priority value={t.priority} />
+              </span>
               <Status value={t.status} text={taskStatus(t)} />
               <TaskCounts task={t} />
               <CaretRight size={15} />

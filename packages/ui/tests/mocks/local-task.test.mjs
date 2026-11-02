@@ -112,6 +112,7 @@ test('本地任务后补上下文仅改指定资料，原阶段、验收、会�
     project: _project,
     description: _description,
     references: _references,
+    updatedAt: _updatedAt,
     ...history
   } = task;
   const {
@@ -119,9 +120,11 @@ test('本地任务后补上下文仅改指定资料，原阶段、验收、会�
     project: _oldProject,
     description: _oldDescription,
     references: _oldReferences,
+    updatedAt: _oldUpdatedAt,
     ...oldHistory
   } = taskOf(before);
   assert.deepEqual(history, oldHistory);
+  assert.ok(Date.parse(task.updatedAt) > Date.parse(taskOf(before).updatedAt));
   assert.deepEqual(updated.sessions, before.sessions);
   assert.deepEqual(updated.branches, before.branches);
   assert.deepEqual(state, before);
@@ -227,7 +230,10 @@ test('开始处理仅记录人工开工，转换到进行中且重复操作幂�
   const beforeTask = taskOf(state);
   assert.equal(taskOf(started).hasStarted, true);
   assert.equal(getBoardColumn(taskOf(started), started.sessions), 'in_progress');
-  assert.deepEqual(taskOf(started), { ...beforeTask, status: 'in_progress', hasStarted: true });
+  const { updatedAt: _updatedAt, ...startedTask } = taskOf(started);
+  const { updatedAt: _beforeUpdatedAt, ...beforeFields } = beforeTask;
+  assert.deepEqual(startedTask, { ...beforeFields, status: 'in_progress', hasStarted: true });
+  assert.ok(Date.parse(taskOf(started).updatedAt) > Date.parse(beforeTask.updatedAt));
   assert.deepEqual(started.sessions, state.sessions);
   assert.deepEqual(started.branches, state.branches);
   assert.deepEqual(act(started, 'START_TASK'), started);
@@ -247,8 +253,10 @@ test('暂停、归档和完成任务不能开始处理，已有执行状态与�
     taskOf(state).attention = attention;
     const before = structuredClone(state);
     const result = act(state, 'START_TASK');
-    assert.deepEqual(taskOf(result), {
-      ...taskOf(before),
+    const { updatedAt: _updatedAt, ...startedTask } = taskOf(result);
+    const { updatedAt: _beforeUpdatedAt, ...beforeTask } = taskOf(before);
+    assert.deepEqual(startedTask, {
+      ...beforeTask,
       status: 'in_progress',
       hasStarted: true,
     });

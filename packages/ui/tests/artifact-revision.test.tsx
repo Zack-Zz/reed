@@ -47,7 +47,7 @@ describe('editing a task artifact version', () => {
   );
 });
 
-it('failed execution exposes retry and explicit internal rework without changing task scope', () => {
+it('failed execution exposes retry without internal workflow rework', () => {
   const runtime = createMockWorkbenchRuntime();
   const model: any = runtime.createInitialState();
   const task = model.tasks.find((item: any) => item.id === 'REQ-1039');
@@ -68,7 +68,7 @@ it('failed execution exposes retry and explicit internal rework without changing
     </WorkbenchRuntimeProvider>,
   );
   expect(html).toContain('准备重试');
-  expect(html).toContain('返工此步骤');
+  expect(html).not.toContain('返工此步骤');
 });
 
 it('completed task history exposes its frozen review and decision without another acceptance', () => {

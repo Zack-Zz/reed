@@ -8,6 +8,7 @@ import { workbenchMessages } from './locales/workbench.js';
 import { workflowMessages } from './locales/workflow.js';
 import { localTaskMessages } from './locales/local-tasks.js';
 import { taskFlowMessages, taskFlowChineseLabels } from './locales/task-flow.js';
+import { markdownMessages } from './locales/markdown.ts';
 
 export const LOCALE_KEY = 'reed-locale';
 export const SUPPORTED_LOCALES = ['zh-CN', 'en'];
@@ -22,6 +23,7 @@ export const messages = {
   ...relationMessages,
   ...configurationMessages,
   ...selectionMessages,
+  ...markdownMessages,
 };
 export function normalizeLocale(value) {
   return /^en(?:-|$)/i.test(String(value)) ? 'en' : 'zh-CN';

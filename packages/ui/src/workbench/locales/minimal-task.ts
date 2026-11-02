@@ -113,7 +113,7 @@ Object.assign(minimalTaskMessages, {
   'task.check-status-change':
     'This status change is not available. Archive completed tasks; restore archived tasks to Done first.',
   'task.comment-required': 'Enter a comment.',
-  'task.comment-too-long': 'Comments can contain up to 20,000 characters.',
+  'task.comment-too-long': 'Comments can contain up to 400,000 characters.',
 });
 export const minimalTaskChineseLabels = Object.fromEntries(
   Object.entries(copy).map(([key, [zh]]) => [`minimal.${key}`, zh]),
@@ -123,5 +123,5 @@ Object.assign(minimalTaskChineseLabels, {
   'task.comment-added': '已添加评论',
   'task.check-status-change': '暂不支持此状态切换；仅已完成可归档，已归档须先恢复到已完成。',
   'task.comment-required': '请填写评论。',
-  'task.comment-too-long': '评论不能超过 20,000 个字符。',
+  'task.comment-too-long': '评论不能超过 400,000 个字符。',
 });

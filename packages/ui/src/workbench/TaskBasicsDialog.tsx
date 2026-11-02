@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Field } from './ui.jsx';
+import { Modal, Field, priorityLabel, priorityOptions } from './ui.jsx';
+import { MarkdownEditor } from './MarkdownEditor';
 import { Select } from './Select.jsx';
 import { useI18n } from './i18n.jsx';
 import { useWorkbenchRuntime } from './runtime-context';
@@ -10,6 +11,8 @@ interface BasicTask {
   title: string;
   taskType: string;
   description?: string;
+  priority?: string | null;
+  owner?: string | null;
 }
 interface Props {
   ctx: {
@@ -32,8 +35,11 @@ export function TaskBasicsDialog({ ctx }: Props) {
   const [title, setTitle] = useState(ctx.task.title);
   const [taskType, setTaskType] = useState(ctx.task.taskType);
   const [description, setDescription] = useState(ctx.task.description || '');
+  const [priority, setPriority] = useState(ctx.task.priority || '');
+  const [owner, setOwner] = useState(ctx.task.owner === 'self' ? 'self' : '');
   const [expectedSnapshot] = useState(() => services.taskSnapshot(ctx.task));
   const [error, setError] = useState(false);
+  const [imagePending, setImagePending] = useState(false);
   const types = services
     .getTaskTypes(ctx.model, true)
     .filter((type) => type.enabled || type.id === ctx.task.taskType);
@@ -43,10 +49,18 @@ export function TaskBasicsDialog({ ctx }: Props) {
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (imagePending) return;
           if (
             ctx.run(
               'SAVE_TASK_BASICS',
-              { title, taskType, description, expectedSnapshot },
+              {
+                title,
+                taskType,
+                description,
+                priority: priority || null,
+                owner: owner || null,
+                expectedSnapshot,
+              },
               'minimal.saved',
             )
           )
@@ -80,15 +94,45 @@ export function TaskBasicsDialog({ ctx }: Props) {
             </Select>
           </label>
           <label className="field">
-            {t('minimal.contentOptional')}
-            <textarea
+            {t('优先级')}
+            <Select
+              name="priority"
+              aria-label={t('优先级')}
+              value={priority}
+              onChange={(event: { target: { value: string } }) => setPriority(event.target.value)}
+            >
+              <option value="">{t('未设置')}</option>
+              {priorityOptions.map((value) => (
+                <option key={value} value={value}>
+                  {t(priorityLabel(value))}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="field">
+            {t('负责人')}
+            <Select
+              name="owner"
+              aria-label={t('负责人')}
+              value={owner}
+              onChange={(event: { target: { value: string } }) => setOwner(event.target.value)}
+            >
+              <option value="self">{t('minimal.you')}</option>
+              <option value="">{t('未指定')}</option>
+            </Select>
+          </label>
+          <div className="field">
+            <span>{t('minimal.contentOptional')}</span>
+            <MarkdownEditor
               name="description"
               rows={6}
               value={description}
               placeholder={t('minimal.contentHint')}
-              onChange={(event) => setDescription(event.target.value)}
+              ariaLabel={t('minimal.contentOptional')}
+              onChange={setDescription}
+              onPendingChange={setImagePending}
             />
-          </label>
+          </div>
           <p className="footnote">{t('minimal.editHint')}</p>
           {error && (
             <p role="alert" className="scope-note">
@@ -100,7 +144,11 @@ export function TaskBasicsDialog({ ctx }: Props) {
           <button type="button" className="quiet" onClick={close}>
             {t('取消')}
           </button>
-          <button type="submit" className="primary" disabled={!title.trim() || !taskType}>
+          <button
+            type="submit"
+            className="primary"
+            disabled={imagePending || !title.trim() || !taskType}
+          >
             {t('minimal.save')}
           </button>
         </footer>

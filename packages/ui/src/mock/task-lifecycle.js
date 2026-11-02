@@ -13,6 +13,16 @@ import {
   retractArtifactEvidence,
 } from './relation-evidence.js';
 // Local preview rules only. These are not Core entities or a wire contract.
+const stamp = () => new Date().toISOString();
+export const touch = (task) => {
+  const now = Date.now();
+  const previous = Date.parse(task.updatedAt || '');
+  task.updatedAt = new Date(
+    Number.isFinite(previous) ? Math.max(now, previous + 1) : now,
+  ).toISOString();
+};
+const PRIORITIES = [null, 'p0', 'p1', 'p2', 'p3'];
+const OWNERS = [null, 'self'];
 export const TASK_TYPES = [
   { id: 'uncategorized', label: '未分类' },
   { id: 'requirement', label: '需求' },
@@ -101,6 +111,11 @@ export function normalizeTask(task) {
   task.workflowHistory ??= [];
   task.scopeHistory ??= [];
   task.comments ??= [];
+  task.priority = PRIORITIES.includes(task.priority) ? task.priority : null;
+  task.owner = OWNERS.includes(task.owner) ? task.owner : 'self';
+  task.createdAt ??= task.updatedAt ?? stamp();
+  task.updatedAt ??= task.createdAt;
+  task.completedAt ??= null;
   if (['done', 'archived'].includes(task.status)) {
     for (const completion of task.completions)
       if (
@@ -264,6 +279,7 @@ function outputChecks(state, task) {
       'work',
       'task.check-workflow-work',
       !task.workflow ||
+        task.workflow.legacy === true ||
         (task.accepted.length === task.workflow.stepLabels.length &&
           task.accepted.every((accepted, index) =>
             task.workflow.steps
@@ -304,6 +320,7 @@ export function getTaskCompletion(state, task, { acceptSteps = false } = {}) {
       'steps',
       'task.check-workflow-acceptance',
       !task.workflow ||
+        task.workflow.legacy === true ||
         task.accepted.every(
           (accepted, index) => accepted || task.workflow.steps?.[index]?.required === false,
         ) ||
@@ -392,7 +409,7 @@ export function applyTaskAction(state, task, action, emit) {
     case 'ADD_TASK_COMMENT': {
       requireThat(present(action.body), 'task.comment-required');
       const body = action.body.trim();
-      requireThat(body.length <= 20000, 'task.comment-too-long');
+      requireThat(body.length <= 400000, 'task.comment-too-long');
       const comment = {
         id: idFor(task.comments, `${task.id}-comment`),
         body,
@@ -400,6 +417,7 @@ export function applyTaskAction(state, task, action, emit) {
         author: 'You',
       };
       task.comments.push(comment);
+      touch(task);
       emit(task.id, 'task.comment-added', { commentId: comment.id });
       return true;
     }
@@ -473,6 +491,7 @@ export function applyTaskAction(state, task, action, emit) {
         }
         markPending(task);
       }
+      touch(task);
       emit(task.id, 'task.status-changed', { fromStatus, status: task.status });
       return true;
     }
@@ -488,10 +507,16 @@ export function applyTaskAction(state, task, action, emit) {
       requireThat(typeof action.description === 'string', 'task.invalid-content');
       const title = action.title.trim();
       const description = action.description.trim();
+      const priority = action.priority === undefined ? task.priority : action.priority;
+      const owner = action.owner === undefined ? task.owner : action.owner;
+      requireThat(PRIORITIES.includes(priority), 'task.invalid-priority');
+      requireThat(OWNERS.includes(owner), 'task.invalid-owner');
       if (
         title === task.title &&
         description === (task.description || '') &&
-        action.taskType === task.taskType
+        action.taskType === task.taskType &&
+        priority === task.priority &&
+        owner === task.owner
       )
         return true;
       if (task.taskType !== action.taskType) {
@@ -500,7 +525,8 @@ export function applyTaskAction(state, task, action, emit) {
         task.typeHistory.push(task.taskType);
       }
       if (title !== task.title) markPending(task);
-      Object.assign(task, { title, taskType: action.taskType, description });
+      Object.assign(task, { title, taskType: action.taskType, description, priority, owner });
+      touch(task);
       emit(task.id, 'task.basics-saved');
       return true;
     }
@@ -515,6 +541,7 @@ export function applyTaskAction(state, task, action, emit) {
       task.typeHistory ??= [];
       if (task.taskType !== action.taskType) task.typeHistory.push(task.taskType);
       task.taskType = action.taskType;
+      touch(task);
       emit(task.id, 'task.type-saved');
       return true;
     case 'START_TASK':
@@ -522,12 +549,14 @@ export function applyTaskAction(state, task, action, emit) {
       requireThat(task.status === 'todo' && !task.paused, 'task.start-state');
       task.status = 'in_progress';
       task.hasStarted = true;
+      touch(task);
       emit(task.id, 'task.started');
       return true;
     case 'REQUEUE_TASK':
       requireThat(task.status === 'in_progress', 'task.requeue-state');
       requireThat(!ownsTaskExecution(state, task), 'task.check-execution');
       task.status = 'todo';
+      touch(task);
       emit(task.id, 'task.requeued');
       return true;
     case 'SAVE_TASK_SCOPE': {
@@ -554,6 +583,7 @@ export function applyTaskAction(state, task, action, emit) {
         task.criteria = criteria;
         task.scopeRevision++;
         task.requirePassingResult = Boolean(action.requirePassingResult);
+        touch(task);
       }
       emit(task.id, 'task.scope-saved');
       return true;
@@ -609,6 +639,7 @@ export function applyTaskAction(state, task, action, emit) {
         ...(task.workflow?.instanceId ? { workflowInstanceId: task.workflow.instanceId } : {}),
         origin: { kind: 'local', system: 'reed', actor: 'manual' },
       });
+      touch(task);
       emit(task.id, 'task.artifact-saved');
       return true;
     }
@@ -684,6 +715,7 @@ export function applyTaskAction(state, task, action, emit) {
       task.review = review;
       task.status = 'review';
       task.hasStarted = true;
+      touch(task);
       emit(task.id, 'task.review-submitted');
       return true;
     }
@@ -737,6 +769,8 @@ export function applyTaskAction(state, task, action, emit) {
         requiredRelations: structuredClone(task.review.requiredRelations || []),
       });
       task.status = 'done';
+      task.completedAt = stamp();
+      touch(task);
       emit(task.id, 'task.completed');
       markPending(task);
       return true;
@@ -745,12 +779,14 @@ export function applyTaskAction(state, task, action, emit) {
       requireThat(task.status === 'done', 'task.archive-done-only');
       requireThat(!ownsTaskExecution(state, task), 'task.check-execution');
       task.status = 'archived';
+      touch(task);
       emit(task.id, 'task.archived');
       return true;
     case 'RESTORE_TASK':
       requireThat(task.status === 'archived', 'task.restore-archived-only');
       requireThat(task.completions.length > 0, 'task.completion-missing');
       task.status = 'done';
+      touch(task);
       emit(task.id, 'task.restored');
       return true;
     case 'REOPEN_TASK':
@@ -764,6 +800,7 @@ export function applyTaskAction(state, task, action, emit) {
       task.review = null;
       task.hasStarted = true;
       task.notes.push(action.reason.trim());
+      touch(task);
       emit(task.id, 'task.reopened');
       markPending(task);
       return true;
@@ -857,12 +894,14 @@ export function applyTaskAction(state, task, action, emit) {
       if (task.stage < task.workflow.stepLabels.length - 1) task.stage++;
       task.sessionId = null;
       task.attention = 'idle';
+      touch(task);
       emit(task.id, 'selection.step-skipped');
       return true;
     }
     case 'TOGGLE_PAUSE':
       requireThat(['todo', 'in_progress', 'review'].includes(task.status), 'task.pause-state');
       task.paused = !task.paused;
+      touch(task);
       emit(task.id, task.paused ? 'task.paused' : 'task.resumed');
       return true;
     default:

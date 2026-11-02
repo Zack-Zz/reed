@@ -268,7 +268,7 @@ test('comments persist independently, preserve frozen review and are allowed aft
 
 test('invalid and oversized comments reject atomically, and legacy drafts gain an empty collection', () => {
   const s = scenario();
-  for (const body of ['', '  \n ', undefined, { text: 'wrong type' }, 'x'.repeat(20001)]) {
+  for (const body of ['', '  \n ', undefined, { text: 'wrong type' }, 'x'.repeat(400001)]) {
     const before = structuredClone(s.state());
     assert.throws(() => s.act('ADD_TASK_COMMENT', { body }), /comment/);
     assert.deepEqual(s.state(), before);

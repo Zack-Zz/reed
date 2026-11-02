@@ -88,13 +88,13 @@ describe('personal board lifecycle and type filters', () => {
     ['zh-CN', '看板状态筛选', '任务类型筛选', '全部状态'],
     ['en', 'Board status filter', 'Task type filter', 'All statuses'],
   ])(
-    'localizes separate filters in %s and only shows explicit workflow steps',
+    'localizes separate filters in %s without workflow phases',
     (locale, statusLabel, typeLabel, all) => {
       const html = renderBoard('all', locale);
       expect(html).toContain(`aria-label="${statusLabel}"`);
       expect(html).toContain(`aria-label="${typeLabel}"`);
       expect(html).toContain(all);
-      expect(html.match(/class="phase-tag"/g)).toHaveLength(1);
+      expect(html).not.toContain('class="phase-tag"');
       expect(html).not.toContain('aria-label="看板阶段筛选"');
     },
   );

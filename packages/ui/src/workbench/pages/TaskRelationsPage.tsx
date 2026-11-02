@@ -406,12 +406,6 @@ export function TaskRelationsPage({
                       <div className="relation-card-meta">
                         <span className="relation-type">{taskTypeLabel(task, model, t)}</span>
                         <Status value={task.status} text={taskStatus(task)} />
-                        <span
-                          className="relation-workflow"
-                          title={t(task.workflow ? 'relation.hasWorkflow' : 'relation.noWorkflow')}
-                        >
-                          {t(task.workflow ? 'relation.hasWorkflow' : 'relation.noWorkflow')}
-                        </span>
                       </div>
                       <div className="relation-card-resources">
                         <SourceBadge

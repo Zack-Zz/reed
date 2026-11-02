@@ -1,6 +1,7 @@
 import { useI18n } from './i18n.jsx';
 import { useEffect, useRef } from 'react';
 import { X, Circle } from '@phosphor-icons/react';
+import { markdownReferences } from './markdown-content';
 export const activity = {
   idle: '待开始',
   review: '待验收',
@@ -71,6 +72,35 @@ export function Status({ value, text }) {
     </span>
   );
 }
+const PRIORITY_LABELS = {
+  p0: 'P0 紧急',
+  p1: 'P1 高',
+  p2: 'P2 中',
+  p3: 'P3 低',
+};
+export function Priority({ value }) {
+  const { t } = useI18n();
+  if (!PRIORITY_LABELS[value]) return null;
+  return (
+    <span className={`priority priority-${value}`} title={t(PRIORITY_LABELS[value])}>
+      {value.toUpperCase()}
+    </span>
+  );
+}
+export const priorityOptions = Object.keys(PRIORITY_LABELS);
+export const priorityLabel = (value) => PRIORITY_LABELS[value] || '未设置';
+export function formatTimestamp(value, locale) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 export function taskEventText(event, t) {
   return event.text === 'task.status-changed'
     ? t('minimal.statusActivity', {
@@ -79,23 +109,64 @@ export function taskEventText(event, t) {
       })
     : t(event.text);
 }
+const SAFE_IMAGE_URL = /^https?:\/\/[^\s]+$/i;
+const DATA_IMAGE_URL = /^data:image\/[a-z0-9.+-]+(?:;[a-z0-9=+._-]+)*,[^\s]*$/i;
+const SAFE_LINK_URL = /^(?:https?:\/\/|mailto:)[^\s]+$/i;
+/** URL guards shared with the Markdown editor before it writes image syntax. */
+export const isSafeImageUrl = (url) => SAFE_IMAGE_URL.test(url) || DATA_IMAGE_URL.test(url);
+export const isSafeLinkUrl = (url) => SAFE_LINK_URL.test(url);
+function inlineContent(text) {
+  const nodes = [];
+  let cursor = 0;
+  for (const reference of markdownReferences(text)) {
+    const { start, end, image, label, url } = reference;
+    if (start > cursor) nodes.push(text.slice(cursor, start));
+    const safe = image ? isSafeImageUrl(url) : isSafeLinkUrl(url);
+    if (!safe) nodes.push(text.slice(start, end));
+    else if (image) nodes.push(<img key={`img-${start}`} src={url} alt={label} />);
+    else
+      nodes.push(
+        <a key={`link-${start}`} href={url} target="_blank" rel="noreferrer">
+          {label}
+        </a>,
+      );
+    cursor = end;
+  }
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return nodes.length ? nodes : [text];
+}
 export function Markdown({ body = '', preview = false }) {
   return (
     <div className="markdown">
       {body.split('\n').map((line, i) => {
         if (!line.trim() || (preview && i === 0 && line.startsWith('# '))) return null;
-        if (line.startsWith('## ')) return <h3 key={i}>{line.slice(3)}</h3>;
-        if (line.startsWith('# ')) return <h2 key={i}>{line.slice(2)}</h2>;
+        const trimmed = line.trim();
+        const references = markdownReferences(trimmed);
+        const image = references.length === 1 ? references[0] : null;
+        if (
+          image?.image &&
+          image.start === 0 &&
+          image.end === trimmed.length &&
+          isSafeImageUrl(image.url)
+        )
+          return (
+            <figure className="markdown-image" key={i}>
+              <img src={image.url} alt={image.label} loading="lazy" />
+              {image.label && <figcaption>{image.label}</figcaption>}
+            </figure>
+          );
+        if (line.startsWith('## ')) return <h3 key={i}>{inlineContent(line.slice(3))}</h3>;
+        if (line.startsWith('# ')) return <h2 key={i}>{inlineContent(line.slice(2))}</h2>;
         if (line.startsWith('- '))
           return (
             <div className="bullet-row" key={i}>
               <Circle size={4} weight="fill" />
-              {line.slice(2)}
+              {inlineContent(line.slice(2))}
             </div>
           );
         return (
           <p key={i} className={line.startsWith('> ') ? 'document-note' : ''}>
-            {line.replace(/^> /, '')}
+            {inlineContent(line.replace(/^> /, ''))}
           </p>
         );
       })}

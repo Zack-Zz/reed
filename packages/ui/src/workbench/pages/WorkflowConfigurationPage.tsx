@@ -402,9 +402,10 @@ export function WorkflowConfigurationPage({
   close,
   initialTab = 'types',
   onDirtyChange,
-}: WorkflowConfigurationPageProps) {
+  typesOnly = false,
+}: WorkflowConfigurationPageProps & { typesOnly?: boolean }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(typesOnly ? 'types' : initialTab);
   const [typeEditing, setTypeEditing] = useState<TypeEditing | null>(null);
   const [editing, setEditing] = useState<TemplateEditing | null>(null);
   const [history, setHistory] = useState<string | null>(null);
@@ -645,9 +646,17 @@ export function WorkflowConfigurationPage({
                   : editing.id
                     ? t('config.editTemplate')
                     : t('config.newTemplate')
-              : t('config.title')}
+              : t(typesOnly ? 'config.types' : 'config.title')}
           </h1>
-          <p>{t(editing ? 'config.templateHint' : 'config.subtitle')}</p>
+          <p>
+            {t(
+              editing
+                ? 'config.templateHint'
+                : typesOnly
+                  ? 'config.typesSubtitle'
+                  : 'config.subtitle',
+            )}
+          </p>
         </div>
         {!editing && (
           <button
@@ -736,32 +745,41 @@ export function WorkflowConfigurationPage({
         </>
       ) : (
         <>
-          <div role="tablist" aria-label={t('config.title')} className="configuration-tabs">
-            {(['types', 'templates'] as const).map((value) => (
-              <button
-                key={value}
-                role="tab"
-                aria-selected={tab === value}
-                id={`configuration-tab-${value}`}
-                aria-controls={`configuration-panel-${value}`}
-                onClick={() => requestLeave(() => setTab(value))}
-              >
-                {t(`config.${value}`)}
-                <span>
-                  {value === 'types'
-                    ? model.configuration.taskTypes.length
-                    : model.configuration.templates.length}
-                </span>
-              </button>
-            ))}
-          </div>
+          {!typesOnly && (
+            <div role="tablist" aria-label={t('config.title')} className="configuration-tabs">
+              {(['types', 'templates'] as const).map((value) => (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={tab === value}
+                  id={`configuration-tab-${value}`}
+                  aria-controls={`configuration-panel-${value}`}
+                  onClick={() => requestLeave(() => setTab(value))}
+                >
+                  {t(`config.${value}`)}
+                  <span>
+                    {value === 'types'
+                      ? model.configuration.taskTypes.length
+                      : model.configuration.templates.length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <div
-            role="tabpanel"
+            role={typesOnly ? 'region' : 'tabpanel'}
             id={`configuration-panel-${tab}`}
-            aria-labelledby={`configuration-tab-${tab}`}
+            aria-label={typesOnly ? t('config.types') : undefined}
+            aria-labelledby={typesOnly ? undefined : `configuration-tab-${tab}`}
           >
             <p className="configuration-hint">
-              {t(tab === 'types' ? 'config.typeHint' : 'config.templateHint')}
+              {t(
+                tab === 'types'
+                  ? typesOnly
+                    ? 'config.typesOnlyHint'
+                    : 'config.typeHint'
+                  : 'config.templateHint',
+              )}
             </p>
             <div className="configuration-list">
               {tab === 'types'
@@ -1012,37 +1030,39 @@ export function WorkflowConfigurationPage({
                     }
                   />
                 </Label>
-                <div className="configuration-recommendations">
-                  <h3>{t('config.recommended')}</h3>
-                  {model.configuration.templates
-                    .filter(
-                      (template) =>
-                        (template.enabled && template.versions.length) ||
-                        typeEditing.recommendedTemplateIds.includes(template.id),
-                    )
-                    .map((template) => (
-                      <label className="configuration-checkbox" key={template.id}>
-                        <input
-                          type="checkbox"
-                          checked={typeEditing.recommendedTemplateIds.includes(template.id)}
-                          onChange={(event) =>
-                            setTypeEditing({
-                              ...typeEditing,
-                              recommendedTemplateIds: event.target.checked
-                                ? [...typeEditing.recommendedTemplateIds, template.id]
-                                : typeEditing.recommendedTemplateIds.filter(
-                                    (id) => id !== template.id,
-                                  ),
-                            })
-                          }
-                        />
-                        {nameOf(template)}
-                      </label>
-                    ))}
-                  {!model.configuration.templates.some(
-                    (template) => template.enabled && template.versions.length,
-                  ) && <p>{t('config.noRecommendations')}</p>}
-                </div>
+                {!typesOnly && (
+                  <div className="configuration-recommendations">
+                    <h3>{t('config.recommended')}</h3>
+                    {model.configuration.templates
+                      .filter(
+                        (template) =>
+                          (template.enabled && template.versions.length) ||
+                          typeEditing.recommendedTemplateIds.includes(template.id),
+                      )
+                      .map((template) => (
+                        <label className="configuration-checkbox" key={template.id}>
+                          <input
+                            type="checkbox"
+                            checked={typeEditing.recommendedTemplateIds.includes(template.id)}
+                            onChange={(event) =>
+                              setTypeEditing({
+                                ...typeEditing,
+                                recommendedTemplateIds: event.target.checked
+                                  ? [...typeEditing.recommendedTemplateIds, template.id]
+                                  : typeEditing.recommendedTemplateIds.filter(
+                                      (id) => id !== template.id,
+                                    ),
+                              })
+                            }
+                          />
+                          {nameOf(template)}
+                        </label>
+                      ))}
+                    {!model.configuration.templates.some(
+                      (template) => template.enabled && template.versions.length,
+                    ) && <p>{t('config.noRecommendations')}</p>}
+                  </div>
+                )}
               </fieldset>
               {error && (
                 <p role="alert" className="configuration-error">

@@ -44,13 +44,7 @@ export function App() {
   const { t: tr } = useI18n();
   const [model, setModel] = useState(() => runtime.load()),
     ref = useRef(model);
-  const [view, setView] = useState(() =>
-      globalThis.location?.search?.includes('view=configuration')
-        ? 'workflow-config'
-        : requestedRelations()
-          ? 'relations'
-          : 'personal',
-    ),
+  const [view, setView] = useState(() => (requestedRelations() ? 'relations' : 'personal')),
     [id, setId] = useState('REQ-1042'),
     [stage, setStage] = useState(null);
   const [scope, setScope] = useState(null),
@@ -428,8 +422,8 @@ export function App() {
           theme={theme}
           setTheme={setTheme}
           dark={dark}
-          openConfiguration={() => openConfiguration()}
           openAbout={() => setModal({ type: 'about' })}
+          openConfiguration={() => openConfiguration('types')}
         />
       </aside>
       <div className="app-workspace">
@@ -446,7 +440,7 @@ export function App() {
                     : view === 'sessions'
                       ? tr('会话')
                       : view === 'workflow-config'
-                        ? tr('config.title')
+                        ? tr('config.types')
                         : view === 'connectors'
                           ? tr('连接器')
                           : tr('分支')}
@@ -469,6 +463,7 @@ export function App() {
               act={act}
               close={closeConfiguration}
               initialTab={configurationTab}
+              typesOnly
               onDirtyChange={setConfigurationDirty}
             />
           ) : view === 'detail' ? (

@@ -1,4 +1,3 @@
-import { WorkflowPicker } from './WorkflowPicker';
 import type { ConfigurationModel } from './configuration-types';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -26,8 +25,6 @@ export interface LocalTaskInfo {
 }
 interface TaskDraft {
   taskType: string;
-  templateId: string | null;
-  templateVersion?: number;
   title: string;
   project: string;
   repo: string;
@@ -37,7 +34,6 @@ interface TaskDraft {
 interface Props {
   task?: LocalTaskInfo;
   model: { tasks: LocalTaskInfo[]; configuration?: ConfigurationModel['configuration'] };
-  onManageConfiguration?: () => void;
   initialProject?: string;
   act: (
     command: WorkbenchCommand,
@@ -56,8 +52,6 @@ function restoreDraft(key: string, fallback: TaskDraft): TaskDraft {
       typeof saved[name] === 'string' ? saved[name] : fallback[name];
     return {
       taskType: typeof saved.taskType === 'string' ? saved.taskType : fallback.taskType,
-      templateId: typeof saved.templateId === 'string' ? saved.templateId : null,
-      templateVersion: Number.isInteger(saved.templateVersion) ? saved.templateVersion : undefined,
       title: text('title') as string,
       project: text('project') as string,
       repo: text('repo') as string,
@@ -87,7 +81,6 @@ export function LocalTaskDialog({
   close,
   onCreated,
   notify,
-  onManageConfiguration,
 }: Props) {
   const { t } = useI18n();
   const { getTaskTypes } = useWorkbenchRuntime().services as {
@@ -101,8 +94,6 @@ export function LocalTaskDialog({
   const [fields, setFields] = useState<TaskDraft>(() => {
     const initial = {
       taskType: task?.taskType || 'uncategorized',
-      templateId: null,
-      templateVersion: undefined,
       title: task?.title || '',
       project: task?.project || initialProject,
       repo: task?.repo || '',
@@ -259,22 +250,6 @@ export function LocalTaskDialog({
                   </div>
                 </div>
               )}
-              <WorkflowPicker
-                model={model}
-                taskType={fields.taskType}
-                value={{ templateId: fields.templateId, templateVersion: fields.templateVersion }}
-                onChange={(next) => update(next)}
-                onManage={
-                  onManageConfiguration
-                    ? () => {
-                        try {
-                          sessionStorage.setItem(draftKey, JSON.stringify(fields));
-                        } catch {}
-                        onManageConfiguration();
-                      }
-                    : undefined
-                }
-              />
             </>
           )}
           <label className="field">

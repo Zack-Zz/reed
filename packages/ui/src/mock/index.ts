@@ -107,7 +107,7 @@ function isUsableDraft(model: unknown): boolean {
               typeof comment.id === 'string' &&
               typeof comment.body === 'string' &&
               comment.body.trim().length > 0 &&
-              comment.body.length <= 20000 &&
+              comment.body.length <= 400000 &&
               typeof comment.createdAt === 'string' &&
               Number.isFinite(Date.parse(comment.createdAt)) &&
               comment.author === 'You',
@@ -138,8 +138,15 @@ export function createMockWorkbenchRuntime(
     load() {
       try {
         const saved = JSON.parse(storage().getItem(STORE) ?? 'null') as PersistedDraft | null;
-        if ((saved?.version === 2 || saved?.version === 3) && isUsableDraft(saved.model))
-          return sources.normalizeState(saved.model);
+        // Optional per-task workflows were removed from the product UI. Mark
+        // persisted legacy workflows so they no longer gate task completion.
+        const savedModel = saved?.model as
+          { tasks?: { workflow?: { legacy?: boolean } | null }[] } | undefined;
+        if (savedModel?.tasks) {
+          for (const task of savedModel.tasks) if (task.workflow) task.workflow.legacy = true;
+        }
+        if ((saved?.version === 2 || saved?.version === 3) && isUsableDraft(savedModel))
+          return sources.normalizeState(savedModel);
       } catch {
         /* Missing/corrupt demo drafts fall back to samples. */
       }

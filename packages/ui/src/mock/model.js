@@ -20,6 +20,7 @@ import {
   getTaskReview,
   needsCodeWorkspace,
   normalizeTask,
+  touch,
 } from './task-lifecycle.js';
 import { createDemoConnector, DEMO_CONNECTOR_ID, normalizeState } from './sources.js';
 
@@ -111,6 +112,7 @@ const nextId = (items, prefix) => {
   while (items.some((item) => item.id === `${prefix}-${number}`)) number += 1;
   return `${prefix}-${number}`;
 };
+const stamp = () => new Date().toISOString();
 const blankTask = (id, title, project = '成员中心') => ({
   id,
   title,
@@ -120,6 +122,11 @@ const blankTask = (id, title, project = '成员中心') => ({
   stage: null,
   status: 'todo',
   taskType: 'uncategorized',
+  priority: null,
+  owner: 'self',
+  createdAt: stamp(),
+  updatedAt: stamp(),
+  completedAt: null,
   workflow: null,
   attention: 'idle',
   hasStarted: false,
@@ -155,6 +162,7 @@ export function createInitialState() {
     ...blankTask('REQ-1042', '成员导入失败后自动补偿'),
     status: 'in_progress',
     taskType: 'development',
+    priority: 'p0',
     workflow: structuredClone(DEVELOPMENT_WORKFLOW),
     source: '云效',
     externalId: 'REQ-1042',
@@ -191,6 +199,7 @@ export function createInitialState() {
     ...blankTask('REQ-1043', '批量邀请成员支持重复校验'),
     status: 'in_progress',
     taskType: 'requirement',
+    priority: 'p1',
     source: '云效',
     externalId: 'REQ-1043',
     attention: 'waiting',
@@ -202,6 +211,7 @@ export function createInitialState() {
     ...blankTask('REQ-1039', '成员角色变更后刷新权限'),
     status: 'in_progress',
     taskType: 'verification',
+    priority: 'p0',
     workflow: structuredClone(DEVELOPMENT_WORKFLOW),
     source: '云效',
     externalId: 'REQ-1039',
@@ -231,6 +241,7 @@ export function createInitialState() {
     ...blankTask('REQ-1040', '机构列表新增状态筛选'),
     status: 'in_progress',
     taskType: 'development',
+    priority: 'p1',
     workflow: structuredClone(DEVELOPMENT_WORKFLOW),
     source: '云效',
     externalId: 'REQ-1040',
@@ -250,11 +261,13 @@ export function createInitialState() {
     ...blankTask('LOCAL-1', '整理成员导入常见问题'),
     repo: '',
     taskType: 'documentation',
+    priority: 'p3',
   };
   const design = {
     ...blankTask('REQ-1045', '邀请链接支持有效期配置'),
     status: 'in_progress',
     taskType: 'requirement',
+    priority: 'p2',
     workflow: structuredClone(DEVELOPMENT_WORKFLOW),
     source: '云效',
     externalId: 'REQ-1045',
@@ -273,8 +286,10 @@ export function createInitialState() {
   };
   let initial = normalizeState({
     connectors: [createDemoConnector()],
-    tasks: [primary, waiting, failed, running, idle, design].map((task) => ({
+    tasks: [primary, waiting, failed, running, idle, design].map((task, index) => ({
       ...task,
+      createdAt: new Date(Date.UTC(2026, 9, 30, 9, index)).toISOString(),
+      updatedAt: new Date(Date.UTC(2026, 9, 30, 9, index)).toISOString(),
       origin:
         task.source === '云效'
           ? { kind: 'connector', connectorId: DEMO_CONNECTOR_ID, externalId: task.externalId }
@@ -434,6 +449,15 @@ export function createInitialState() {
     }
     if (archive) command('ARCHIVE_TASK');
   }
+  initial.tasks.forEach((task, index) => {
+    const at = new Date(Date.UTC(2026, 9, 30, 9, index)).toISOString();
+    task.createdAt = at;
+    task.updatedAt = at;
+    if (task.completedAt) task.completedAt = at;
+    // Optional per-task workflows were removed from the product. Sample data may
+    // still carry them for historical rendering, but they no longer gate completion.
+    if (task.workflow) task.workflow.legacy = true;
+  });
   return initial;
 }
 
@@ -701,6 +725,11 @@ export function reduce(state, action) {
       ),
     });
     const title = action.title === undefined ? task.title : text(action.title, '任务标题');
+    const updatedAt = task.updatedAt;
+    const contextChanged =
+      context.project !== (task.project || '') ||
+      context.repo !== (task.repo || '') ||
+      JSON.stringify(context.references) !== JSON.stringify(task.references || []);
     if (context.repo !== task.repo) {
       requireThat(
         !hasRepositoryRelations(next, task) || canLinkFirstRepository(next, task),
@@ -743,6 +772,7 @@ export function reduce(state, action) {
       task.taskType = action.taskType;
     }
     Object.assign(task, context, { title });
+    if (contextChanged && task.updatedAt === updatedAt) touch(task);
     emit(task.id, '已保存本地任务上下文');
     return next;
   }

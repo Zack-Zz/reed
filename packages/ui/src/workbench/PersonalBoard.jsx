@@ -378,11 +378,6 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
                             {['running', 'waiting', 'unknown', 'failed'].includes(
                               task.attention,
                             ) && <Status value={task.attention} text={activity[task.attention]} />}
-                            {task.workflow && (
-                              <span className="phase-tag">
-                                {tr(task.workflow.stepLabels[task.stage])}
-                              </span>
-                            )}
                             {task.paused && (
                               <span className="status">
                                 <Pause size={12} />

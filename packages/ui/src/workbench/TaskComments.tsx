@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from './i18n.jsx';
+import { Markdown } from './ui.jsx';
+import { DEFAULT_MARKDOWN_MAX_LENGTH, MarkdownEditor } from './MarkdownEditor';
 
 interface TaskComment {
   id: string;
@@ -12,12 +14,15 @@ interface Props {
     task: { id: string; comments?: TaskComment[] };
     run: (type: string, fields: Record<string, unknown>, message?: string) => unknown;
   };
+  /** Comment length ceiling; aligned with the model validation when it changes. */
+  maxLength?: number;
 }
 
-export function TaskComments({ ctx }: Props) {
+export function TaskComments({ ctx, maxLength = DEFAULT_MARKDOWN_MAX_LENGTH }: Props) {
   const { t, locale } = useI18n();
   const [body, setBody] = useState('');
   const [error, setError] = useState(false);
+  const [imagePending, setImagePending] = useState(false);
   const comments = ctx.task.comments || [];
   return (
     <section className="task-flow-section task-comments">
@@ -40,7 +45,9 @@ export function TaskComments({ ctx }: Props) {
                   })}
                 </time>
               </div>
-              <p>{comment.body}</p>
+              <div className="task-comment-body">
+                <Markdown body={comment.body} />
+              </div>
             </li>
           ))}
         </ol>
@@ -51,32 +58,33 @@ export function TaskComments({ ctx }: Props) {
         className="task-comment-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!body.trim()) return;
+          if (imagePending || !body.trim()) return;
           if (ctx.run('ADD_TASK_COMMENT', { body }, 'minimal.commentSaved')) {
             setBody('');
             setError(false);
           } else setError(true);
         }}
       >
-        <label className="field">
-          <span className="sr-only">{t('minimal.addComment')}</span>
-          <textarea
+        <div className="field">
+          <MarkdownEditor
             name="comment"
             rows={3}
-            maxLength={20000}
+            maxLength={maxLength}
             required
             value={body}
             placeholder={t('minimal.commentPlaceholder')}
-            onChange={(event) => setBody(event.target.value)}
+            ariaLabel={t('minimal.addComment')}
+            onChange={setBody}
+            onPendingChange={setImagePending}
           />
-        </label>
+        </div>
         {error && (
           <p className="scope-note" role="alert">
             {t('minimal.commentFailed')}
           </p>
         )}
         <div className="task-comment-actions">
-          <button className="secondary small" type="submit" disabled={!body.trim()}>
+          <button className="secondary small" type="submit" disabled={imagePending || !body.trim()}>
             {t('minimal.addComment')}
           </button>
         </div>
