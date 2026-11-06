@@ -24,12 +24,30 @@ const gitOrigin = (repo) => ({ kind: 'local', system: 'git', repo });
 
 // Old caches never recorded a Connector identity. Keep that uncertainty rather
 // than silently attributing their remote data to a newly configured instance.
+const DEFAULT_AGENTS = [
+  { id: 'codex', name: 'Codex' },
+  { id: 'claude-code', name: 'Claude Code' },
+  { id: 'zcode', name: 'ZCode' },
+];
+const normalizeDirectoryPath = (path) =>
+  String(path ?? '')
+    .trim()
+    .replace(/\/+$/, '');
 export function normalizeState(state) {
   const next = structuredClone(state);
   next.relations ??= [];
   next.configuration ??= createConfiguration();
   next.connectors ??= [createDemoConnector()];
   next.connectors = next.connectors.map(normalizeConnector);
+  // 项目工作区建模集合：目录与 Agent 工作区可能后于旧快照存在，缺省时补空。
+  next.projects ??= [];
+  next.directories ??= [];
+  next.agents ??= structuredClone(DEFAULT_AGENTS);
+  next.agentWorkspaces ??= [];
+  next.directories = next.directories.map((directory) => ({
+    ...directory,
+    path: normalizeDirectoryPath(directory.path),
+  }));
   let needsLegacy = false;
   for (const task of next.tasks ?? []) {
     normalizeTask(task);
@@ -45,9 +63,73 @@ export function normalizeState(state) {
     }
     for (const document of task.docs ?? []) document.origin ??= { kind: 'unknown' };
     if (task.workspace) task.workspace.origin ??= gitOrigin(task.repo);
+    // 先恢复全部本地项目，再统一回填身份，避免本地/外部任务的排列影响加载结果。
+    // 来源项目名仍属于外部事实，不据此自动创建 Reed 项目。
+    if (
+      !task.projectId &&
+      task.project &&
+      task.origin?.kind === 'local' &&
+      task.origin.system === 'reed' &&
+      !next.projects.some((item) => item.name === task.project)
+    ) {
+      let number = next.projects.length + 1;
+      while (next.projects.some((item) => item.id === `project-${number}`)) number += 1;
+      next.projects.push({ id: `project-${number}`, name: task.project });
+    }
   }
-  for (const session of next.sessions ?? [])
+  for (const task of next.tasks ?? []) {
+    // 展示镜像：projectId ↔ project 名称、workspace.directoryId ↔ repo 名称。
+    // 身份优先：目录只认任务所属项目内的唯一匹配；跨项目、歧义或失效身份
+    // 丢弃后重解，不按仓库显示名选第一项。
+    if (task.projectId) {
+      const project = next.projects.find((item) => item.id === task.projectId);
+      if (project) task.project = project.name;
+    } else if (task.project) {
+      task.projectId = next.projects.find((item) => item.name === task.project)?.id ?? null;
+    }
+    if (task.workspace) {
+      const linked = task.workspace.directoryId
+        ? next.directories.find((item) => item.id === task.workspace.directoryId)
+        : null;
+      const trusted =
+        linked && linked.kind === 'git' && linked.projectId === (task.projectId ?? null);
+      if (!trusted) {
+        const matches = task.repo
+          ? next.directories.filter(
+              (item) =>
+                item.kind === 'git' &&
+                item.projectId === (task.projectId ?? null) &&
+                item.name === task.repo,
+            )
+          : [];
+        task.workspace.directoryId = matches.length === 1 ? matches[0].id : null;
+      }
+      const directory = task.workspace.directoryId
+        ? next.directories.find((item) => item.id === task.workspace.directoryId)
+        : null;
+      if (directory?.kind === 'git') task.repo = directory.name;
+    }
+  }
+  // 设备维度补默认值：本地样例/旧草稿没有 devices 集合时按单机补齐。
+  next.devices ??= [{ id: 'device-this', name: '本机', isLocal: true }];
+  for (const device of next.devices) {
+    device.isLocal ??= device.id === 'device-this';
+  }
+  for (const workspace of next.agentWorkspaces ?? []) {
+    workspace.deviceId ??= next.devices[0]?.id ?? 'device-this';
+  }
+  for (const session of next.sessions ?? []) {
+    if (session.agentWorkspaceId) {
+      const workspace = next.agentWorkspaces.find((item) => item.id === session.agentWorkspaceId);
+      const agent = workspace && next.agents.find((item) => item.id === workspace.agentId);
+      if (agent) session.host = agent.name;
+    }
     session.origin ??= session.host ? { kind: 'host', host: session.host } : { kind: 'unknown' };
+    const workspace = session.agentWorkspaceId
+      ? next.agentWorkspaces.find((item) => item.id === session.agentWorkspaceId)
+      : undefined;
+    session.originDeviceId ??= workspace?.deviceId ?? next.devices[0]?.id ?? 'device-this';
+  }
   for (const branch of next.branches ?? [])
     branch.origin ??= branch.repo || branch.path ? gitOrigin(branch.repo) : { kind: 'unknown' };
   for (const event of next.events ?? []) event.origin ??= { kind: 'unknown' };

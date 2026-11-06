@@ -2,33 +2,34 @@ import { useWorkbenchRuntime, useWorkbenchFileExport } from './runtime-context.j
 import { useAppearance } from './useAppearance.js';
 import { SettingsControl } from './SettingsControl.jsx';
 import { useI18n } from './i18n.jsx';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
-  Tray as Inbox,
   FileText,
   ChatCircleDots,
   GitBranch,
   Users,
   Archive,
   SquaresFour,
+  PencilSimple,
   CheckCircle,
   Info,
   Plugs,
-  TreeStructure,
+  ArrowSquareIn,
 } from '@phosphor-icons/react';
 import { WorkflowConfigurationPage } from './pages/WorkflowConfigurationPage';
-import { Modal } from './ui.jsx';
-import { needsAttention } from './ui.jsx';
+import { IconButton, Modal, TaskIdentity } from './ui.jsx';
 import { Dialogs } from './Dialogs.jsx';
 import { PersonalBoard } from './PersonalBoard.jsx';
 import { TaskDrawer } from './TaskDrawer.jsx';
+import { TaskRelationsDialog } from './TaskRelationsDialog.jsx';
 import { ConnectorSettings } from './ConnectorSettings.jsx';
 
 import { TaskDetail } from './pages/TaskDetailPage.jsx';
 import { TaskList } from './pages/TaskListPage.jsx';
-import { ResourceView } from './pages/ResourcePage.jsx';
 import { switchRelationRoot } from './relations-layout';
 import { TaskRelationsPage } from './pages/TaskRelationsPage';
+import { ProjectPage } from './pages/ProjectPage';
+import { ResourceDrawer } from './ResourceDrawer';
 
 function requestedRelations() {
   try {
@@ -52,7 +53,11 @@ export function App() {
     [filter, setFilter] = useState('all');
   const [drawerId, setDrawerId] = useState(null),
     [drawerIntent, setDrawerIntent] = useState(null);
+  const [relationsDialogId, setRelationsDialogId] = useState(null);
   const [connectorSelection, setConnectorSelection] = useState(null);
+  const [projectViewId, setProjectViewId] = useState(null);
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+  const [resourceView, setResourceView] = useState(null);
   const [relationsUi, setRelationsUi] = useState({
     rootId: null,
     collapsed: [],
@@ -147,7 +152,11 @@ export function App() {
     setId(key);
     setStage(at ?? t.stage);
     setMenu(null);
-    if (['personal', 'relations'].includes(view)) {
+    if (options.asDrawer) {
+      setDrawerId(key);
+      setDrawerIntent(options.intent || null);
+      if (view === 'detail') setView(taskOrigin);
+    } else if (['personal', 'relations'].includes(view)) {
       setDrawerId(key);
       setDrawerIntent(options.intent || null);
       if (view === 'relations') setRelationsUi((previous) => ({ ...previous, selectedId: key }));
@@ -155,6 +164,11 @@ export function App() {
       setDrawerId(null);
       setView('detail');
     }
+  }
+  // 资源抽屉跳任务：先关闭自身，避免顶层抽屉挡住目标内容。
+  function openTaskFromResource(key) {
+    setResourceView(null);
+    openTask(key);
   }
   function openRelations(key) {
     if (view === 'workflow-config' && configurationDirty) {
@@ -165,15 +179,24 @@ export function App() {
     if (!current) return;
     setId(key);
     setStage(current.stage);
+    setRelationsUi((previous) => switchRelationRoot(previous, key));
+    setRelationsDialogId(key);
+  }
+  function openRelationsFull(key) {
+    const current = ref.current.tasks.find((item) => item.id === key);
+    if (!current) return;
+    setId(key);
+    setStage(current.stage);
     setTaskOrigin('relations');
     setRelationsUi((previous) => switchRelationRoot(previous, key));
+    setRelationsDialogId(null);
     closeDrawer();
     setView('relations');
     setMenu(null);
   }
   function showRelationExample() {
     const next = act({ type: 'ADD_RELATION_EXAMPLES' });
-    if (next?.relationExampleRootId) openRelations(next.relationExampleRootId);
+    if (next?.relationExampleRootId) openRelationsFull(next.relationExampleRootId);
   }
   function closeDrawer() {
     setDrawerId(null);
@@ -305,7 +328,9 @@ export function App() {
     modal,
     setModal,
     openTask,
+    openTaskFromResource,
     openRelations,
+    openResource: (kind, id) => setResourceView({ kind, id }),
     showRelationExample,
     openForTask,
     go,
@@ -316,27 +341,26 @@ export function App() {
   };
   const drawerCtx = {
     ...ctx,
+    openResource: (kind, id) => setResourceView({ kind, id }),
     go: (to, within, selected) => {
       if (['personal', 'tasks', 'relations'].includes(to)) closeDrawer();
-      else if (to === 'sessions') {
-        const session = ref.current.sessions.find((item) => item.id === selected);
-        if (session) native(session);
-        else setModal({ type: 'associations' });
-      } else if (to === 'branches') {
-        const branch = ref.current.branches.find((item) => item.taskId === (within || task.id));
-        if (branch) setModal({ type: 'workspace', branchId: branch.id });
+      else if (to === 'sessions') setResourceView({ kind: 'session', id: selected });
+      else if (to === 'branches') {
+        const branch = ref.current.branches.find(
+          (item) => item.taskId === (within || task.id) && item.id === selected,
+        );
+        if (branch) setResourceView({ kind: 'branch', id: branch.id });
+        else setModal({ type: 'workspace' });
       } else go(to, within, selected);
     },
   };
   const drawerPlan = drawerId && drawerIntent ? getBoardMove(model, drawerId, drawerIntent) : null;
-  const count = model.tasks.filter((t) => t.status !== 'archived' && needsAttention(t)).length;
+  const relationsDialogTask = relationsDialogId
+    ? model.tasks.find((item) => item.id === relationsDialogId)
+    : null;
   const nav = [
-    ['personal', '我的看板', SquaresFour],
-    ['attention', '待我处理', Inbox],
+    ['personal', '看板', SquaresFour],
     ['tasks', '任务导航', FileText],
-    ['relations', 'relation.title', TreeStructure],
-    ['sessions', '会话', ChatCircleDots],
-    ['branches', '分支', GitBranch],
   ];
   return (
     <div className="app-shell">
@@ -350,67 +374,112 @@ export function App() {
         </button>
         <nav className="main-nav" aria-label={tr('主导航')}>
           {nav.map(([key, name, Icon]) => (
-            <button
-              key={key}
-              aria-label={tr(name)}
-              title={tr(name)}
-              className={
-                (key === 'personal' && view === 'detail' && taskOrigin === 'personal') ||
-                (key === 'relations' && view === 'detail' && taskOrigin === 'relations') ||
-                (key === 'tasks' &&
-                  ((view === 'detail' && taskOrigin === 'tasks') ||
-                    (view === 'tasks' && filter !== 'attention'))) ||
-                (key === 'attention' && view === 'tasks' && filter === 'attention') ||
-                (key === view && key !== 'tasks')
-                  ? 'active'
-                  : ''
-              }
-              onClick={() => {
-                if (key === 'tasks' || key === 'attention') {
-                  setFilter(key === 'attention' ? 'attention' : 'all');
-                  go('tasks');
-                } else if (key === 'relations') {
-                  if (relationsUi.rootId) openRelations(relationsUi.rootId);
-                  else showRelationExample();
-                } else go(key);
-              }}
-            >
-              <Icon size={21} />
-              <span>{tr(name)}</span>
-              {key === 'attention' && <small>{count}</small>}
-            </button>
+            <Fragment key={key}>
+              <button
+                key={key}
+                aria-label={tr(name)}
+                title={tr(name)}
+                className={
+                  (key === 'personal' && view === 'detail' && taskOrigin === 'personal') ||
+                  (key === 'tasks' &&
+                    ((view === 'detail' && taskOrigin === 'tasks') ||
+                      (view === 'tasks' && filter !== 'attention'))) ||
+                  (key === view && key !== 'tasks')
+                    ? 'active'
+                    : ''
+                }
+                onClick={() => {
+                  if (key === 'tasks') {
+                    setFilter('all');
+                    go('tasks');
+                  } else go(key);
+                }}
+              >
+                <Icon size={21} />
+                <span>{tr(name)}</span>
+              </button>
+              {key === 'tasks' && view === 'tasks' && (
+                <div className="saved-views">
+                  <button
+                    onClick={() => setFilter('completed')}
+                    className={filter === 'completed' ? 'active' : ''}
+                  >
+                    <CheckCircle size={16} />
+                    {tr('已完成')}
+                  </button>
+                  <button
+                    onClick={() => setFilter('archived')}
+                    className={filter === 'archived' ? 'active' : ''}
+                  >
+                    <Archive size={16} />
+                    {tr('归档')}
+                  </button>
+                </div>
+              )}
+            </Fragment>
           ))}
         </nav>
         <div className="project-nav">
           <p>{tr('项目')}</p>
-          <button
-            onClick={() => {
-              setFilter('all');
-              go('tasks');
-            }}
-          >
-            <Users size={20} />
-            成员中心
-          </button>
+          {model.projects.map((entry) => {
+            const workspaces = model.agentWorkspaces.filter(
+              (item) => item.status === 'linked' && item.projectId === entry.id,
+            );
+            const agentName = (id) => model.agents.find((agent) => agent.id === id)?.name ?? id;
+            const expanded = expandedProjectId === entry.id;
+            return (
+              <div className="project-entry" key={entry.id}>
+                <div className="project-entry-row">
+                  <button
+                    className={view === 'project' && projectViewId === entry.id ? 'active' : ''}
+                    onClick={() => {
+                      setProjectViewId(entry.id);
+                      setExpandedProjectId(expanded && view === 'project' ? null : entry.id);
+                      go('project');
+                    }}
+                  >
+                    <Users size={20} />
+                    {entry.name}
+                  </button>
+                  <button
+                    className="icon-button project-edit"
+                    aria-label={tr('编辑项目目录')}
+                    title={tr('编辑项目目录')}
+                    onClick={() => setModal({ type: 'project-directories', projectId: entry.id })}
+                  >
+                    <PencilSimple size={14} />
+                  </button>
+                </div>
+                {expanded && (
+                  <div className="project-sessions">
+                    {workspaces.map((workspace) => {
+                      const sessions = model.sessions.filter(
+                        (session) => session.agentWorkspaceId === workspace.id,
+                      );
+                      if (!sessions.length) return null;
+                      return (
+                        <div key={workspace.id}>
+                          <p className="project-agent-label">
+                            {agentName(workspace.agentId)} · {sessions.length}
+                          </p>
+                          {sessions.map((session) => (
+                            <button
+                              key={session.id}
+                              onClick={() => setResourceView({ kind: 'session', id: session.id })}
+                            >
+                              {session.title}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {!workspaces.length && <p className="project-agent-label">{tr('暂无会话')}</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        {view === 'tasks' && (
-          <div className="saved-views">
-            <button
-              onClick={() => setFilter('completed')}
-              className={filter === 'completed' ? 'active' : ''}
-            >
-              <CheckCircle size={16} />
-              {tr('已完成')}
-            </button>
-            <button
-              onClick={() => setFilter('archived')}
-              className={filter === 'archived' ? 'active' : ''}
-            >
-              <Archive size={16} />
-              {tr('归档')}
-            </button>
-          </div>
-        )}
         <button
           className={`connector-entry ${view === 'connectors' || modal?.type === 'connector-catalog' ? 'active' : ''}`}
           onClick={() => openConnectors()}
@@ -428,24 +497,34 @@ export function App() {
       </aside>
       <div className="app-workspace">
         <header className="topbar">
-          <span>
-            {view === 'detail'
-              ? ''
-              : view === 'personal'
-                ? tr('我的看板')
+          {view === 'detail' ? (
+            <TaskIdentity task={task} />
+          ) : (
+            <span>
+              {view === 'personal'
+                ? tr('看板')
                 : view === 'relations'
                   ? tr('relation.title')
                   : view === 'tasks'
                     ? tr('任务导航')
-                    : view === 'sessions'
-                      ? tr('会话')
+                    : view === 'project'
+                      ? tr('项目')
                       : view === 'workflow-config'
                         ? tr('config.types')
                         : view === 'connectors'
                           ? tr('连接器')
-                          : tr('分支')}
-          </span>
+                          : tr('项目')}
+            </span>
+          )}
           <div className="topbar-actions">
+            {view === 'detail' && (
+              <IconButton
+                label="在抽屉中打开"
+                onClick={() => openTask(id, undefined, { asDrawer: true })}
+              >
+                <ArrowSquareIn size={18} />
+              </IconButton>
+            )}
             <button
               className="icon-button mobile-connector"
               aria-label={tr('连接器设置')}
@@ -475,6 +554,10 @@ export function App() {
               ctx={ctx}
               relationsUi={relationsUi}
               setRelationsUi={setRelationsUi}
+              onSwitchToDialog={() => {
+                setRelationsDialogId(relationsUi.rootId || id);
+                setView(taskOrigin);
+              }}
             />
           ) : view === 'connectors' ? (
             <ConnectorSettings ctx={ctx} selectedId={connectorSelection} />
@@ -486,15 +569,10 @@ export function App() {
               listUi={listUi}
               setListUi={setListUi}
             />
+          ) : view === 'project' ? (
+            <ProjectPage ctx={ctx} projectId={projectViewId} />
           ) : (
-            <ResourceView
-              ctx={ctx}
-              view={view}
-              scope={scope}
-              setScope={setScope}
-              resource={resource}
-              setResource={setResource}
-            />
+            <PersonalBoard ctx={ctx} boardUi={boardUi} setBoardUi={setBoardUi} />
           )}
         </main>
       </div>
@@ -531,6 +609,9 @@ export function App() {
           </footer>
         </Modal>
       )}
+      {resourceView && (
+        <ResourceDrawer ctx={ctx} view={resourceView} close={() => setResourceView(null)} />
+      )}
       {drawerId && (
         <TaskDrawer
           task={task}
@@ -541,6 +622,26 @@ export function App() {
         >
           <TaskDetail key={task.id} ctx={drawerCtx} saved={saved} />
         </TaskDrawer>
+      )}
+      {relationsDialogTask && (
+        <TaskRelationsDialog
+          task={relationsDialogTask}
+          close={() => setRelationsDialogId(null)}
+          openFull={() => openRelationsFull(relationsDialogTask.id)}
+        >
+          <TaskRelationsPage
+            ctx={{
+              ...ctx,
+              openTask: (key, at) => {
+                setRelationsDialogId(null);
+                openTask(key, at, { asDrawer: true });
+              },
+            }}
+            relationsUi={relationsUi}
+            setRelationsUi={setRelationsUi}
+            embedded
+          />
+        </TaskRelationsDialog>
       )}
       <Dialogs ctx={['personal', 'relations'].includes(view) ? drawerCtx : ctx} />
       {toast && (

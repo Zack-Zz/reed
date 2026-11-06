@@ -5,6 +5,7 @@ import type { WorkbenchStorage } from '../src/workbench/ports';
 type Snapshot = {
   tasks: Array<{ id: string; title: string; stage: number; docs: Array<{ body: string }> }>;
   connectors: Array<Record<string, unknown>>;
+  devices?: Array<Record<string, unknown>>;
 };
 const snapshotOf = (value: unknown) => value as Snapshot;
 const memoryStorage = (content: string | null = null): WorkbenchStorage => ({
@@ -36,15 +37,35 @@ describe('mock workbench runtime', () => {
     }
   });
 
-  it('restores version 2 drafts under the existing key without resetting user content', () => {
+  it('restores version 5 drafts under the existing key without resetting user content', () => {
     const draft = snapshotOf(createMockWorkbenchRuntime().createInitialState());
     draft.tasks[0].title = '用户保留的标题';
-    const storage = memoryStorage(JSON.stringify({ version: 2, model: draft }));
+    const storage = memoryStorage(JSON.stringify({ version: 5, model: draft }));
     const runtime = createMockWorkbenchRuntime({ storage });
     expect(storage.getItem).not.toHaveBeenCalled();
     expect(runtime.load()).toEqual(draft);
     expect(storage.getItem).toHaveBeenCalledExactlyOnceWith('reed-demo-v2');
     expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the remodeled samples for legacy envelopes before the device dimension', () => {
+    const draft = snapshotOf(createMockWorkbenchRuntime().createInitialState());
+    draft.tasks[0].title = '旧结构不再回读';
+    delete draft.devices;
+    for (const version of [2, 3, 4]) {
+      const runtime = createMockWorkbenchRuntime({
+        storage: memoryStorage(JSON.stringify({ version, model: draft })),
+      });
+      expect(runtime.load()).toEqual(runtime.createInitialState());
+    }
+  });
+
+  it('falls back to the samples when a version 5 draft predates the device dimension', () => {
+    const draft = snapshotOf(createMockWorkbenchRuntime().createInitialState());
+    delete draft.devices;
+    const storage = memoryStorage(JSON.stringify({ version: 5, model: draft }));
+    const runtime = createMockWorkbenchRuntime({ storage });
+    expect(runtime.load()).toEqual(runtime.createInitialState());
   });
 
   it.each([
@@ -67,7 +88,7 @@ describe('mock workbench runtime', () => {
     expect(runtime.load()).toEqual(runtime.createInitialState());
   });
 
-  it('saves the version 3 envelope and does not mutate the in-memory snapshot', () => {
+  it('saves the version 4 envelope and does not mutate the in-memory snapshot', () => {
     const storage = memoryStorage();
     const runtime = createMockWorkbenchRuntime({ storage });
     const snapshot = runtime.createInitialState();
@@ -75,7 +96,7 @@ describe('mock workbench runtime', () => {
     expect(runtime.save(snapshot)).toBe(true);
     expect(storage.setItem).toHaveBeenCalledExactlyOnceWith(
       'reed-demo-v2',
-      JSON.stringify({ version: 3, model: snapshot }),
+      JSON.stringify({ version: 5, model: snapshot }),
     );
     expect(snapshot).toEqual(before);
   });
@@ -178,7 +199,7 @@ describe('mock draft structural boundary', () => {
     ['incomplete task', { tasks: [{}], sessions: [], branches: [], events: [] }],
   ])('rejects %s before an unusable snapshot reaches the workbench', (_name, model) => {
     const runtime = createMockWorkbenchRuntime({
-      storage: memoryStorage(JSON.stringify({ version: 2, model })),
+      storage: memoryStorage(JSON.stringify({ version: 5, model })),
     });
     expect(runtime.load()).toEqual(runtime.createInitialState());
   });
@@ -193,7 +214,7 @@ describe('optional local context restoration', () => {
     const snapshot = snapshotOf(createMockWorkbenchRuntime().createInitialState());
     Object.assign(snapshot.tasks[0], fields);
     const runtime = createMockWorkbenchRuntime({
-      storage: memoryStorage(JSON.stringify({ version: 2, model: snapshot })),
+      storage: memoryStorage(JSON.stringify({ version: 5, model: snapshot })),
     });
     expect(runtime.load()).toEqual(runtime.createInitialState());
   });
@@ -217,7 +238,7 @@ describe('task model preview migration', () => {
     legacy.status = 'completed';
     legacy.accepted = [true, true, true, true];
     const oldDocs = structuredClone(legacy.docs);
-    const storage = memoryStorage(JSON.stringify({ version: 2, model: draft }));
+    const storage = memoryStorage(JSON.stringify({ version: 5, model: draft }));
     const restored = snapshotOf(createMockWorkbenchRuntime({ storage }).load()) as any;
     expect(restored.tasks[0].status).toBe('in_progress');
     expect(restored.tasks[0].legacyState.status).toBe('completed');
@@ -232,7 +253,7 @@ describe('task model preview migration', () => {
     const completed = draft.tasks.find((task: any) => task.status === 'done');
     completed.docs[0].body = 'changed after completion';
     const runtime = createMockWorkbenchRuntime({
-      storage: memoryStorage(JSON.stringify({ version: 3, model: draft })),
+      storage: memoryStorage(JSON.stringify({ version: 5, model: draft })),
     });
     const restored = (snapshotOf(runtime.load()) as any).tasks.find(
       (task: any) => task.id === completed.id,
@@ -250,7 +271,7 @@ describe('task model preview migration', () => {
     const draft = snapshotOf(createMockWorkbenchRuntime().createInitialState());
     Object.assign(draft.tasks[0], fields);
     const runtime = createMockWorkbenchRuntime({
-      storage: memoryStorage(JSON.stringify({ version: 3, model: draft })),
+      storage: memoryStorage(JSON.stringify({ version: 5, model: draft })),
     });
     expect(runtime.load()).toEqual(runtime.createInitialState());
   });
@@ -263,7 +284,7 @@ it('does not render a corrupt relation note as a React child', () => {
   });
   state.relations[0].reason = { broken: true };
   const invalid = createMockWorkbenchRuntime({
-    storage: memoryStorage(JSON.stringify({ version: 3, model: state })),
+    storage: memoryStorage(JSON.stringify({ version: 5, model: state })),
   });
   expect(invalid.load()).toEqual(invalid.createInitialState());
 });
@@ -278,7 +299,7 @@ it.each([{ requiredRelations: {} }, { requiredRelations: [{ taskId: 'missing-bin
       fields,
     );
     const invalid = createMockWorkbenchRuntime({
-      storage: memoryStorage(JSON.stringify({ version: 3, model: snapshot })),
+      storage: memoryStorage(JSON.stringify({ version: 5, model: snapshot })),
     });
     expect(invalid.load()).toEqual(invalid.createInitialState());
   },

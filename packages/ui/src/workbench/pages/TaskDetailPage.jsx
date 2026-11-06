@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FileText,
   ChatCircleDots,
@@ -8,6 +8,8 @@ import {
   Pause,
   ListBullets,
   WarningCircle,
+  PencilSimple,
+  Info,
 } from '@phosphor-icons/react';
 import { useWorkbenchRuntime } from '../runtime-context.js';
 import { useI18n } from '../i18n.jsx';
@@ -96,7 +98,7 @@ function Resources({ ctx }) {
             <button
               className="resource-row"
               key={session.id}
-              onClick={() => go('sessions', task.id, session.id)}
+              onClick={() => ctx.openResource?.('session', session.id)}
             >
               <ChatCircleDots size={18} />
               <span>
@@ -109,14 +111,19 @@ function Resources({ ctx }) {
       )}
       {!task.docs.length && !sessions.length && <p className="muted">{t('尚无关联内容')}</p>}
       <div className="task-resource-actions">
-        <button className="quiet small" onClick={() => setModal({ type: 'associations' })}>
-          {t('查看全部关联')}
-        </button>
         <button
           className="workspace-preview"
-          onClick={() =>
-            task.workspace.ready ? go('branches', task.id) : setModal({ type: 'associations' })
-          }
+          onClick={() => {
+            if (!task.workspace.ready) {
+              setModal({ type: 'associations' });
+              return;
+            }
+            const branch = model.branches.find(
+              (item) => item.taskId === task.id && item.name === task.workspace.branch,
+            );
+            if (branch) ctx.openResource?.('branch', branch.id);
+            else setModal({ type: 'associations' });
+          }}
         >
           <GitBranch size={18} />
           <span>
@@ -178,6 +185,25 @@ export function TaskDetail({ ctx, saved }) {
   const { t, locale } = useI18n();
   const { task, model, setModal, go, run } = ctx;
   const [more, setMore] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!more) return undefined;
+    const outside = (event) => {
+      if (!menuRef.current?.contains(event.target)) setMore(false);
+    };
+    const key = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMore(false);
+    };
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', key, true);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', key, true);
+    };
+  }, [more]);
   const editable = ['todo', 'in_progress'].includes(task.status);
   const hasScope = Boolean(task.goal || task.criteria?.length || task.requirePassingResult);
   const localTask = task.origin?.kind === 'local' && task.origin.system === 'reed';
@@ -192,16 +218,20 @@ export function TaskDetail({ ctx, saved }) {
   return (
     <div className="detail-layout task-detail">
       <section className="task-main">
+        {!saved && (
+          <div className="notice danger save-failure-alert" role="alert">
+            <WarningCircle size={19} />
+            <span>{t('保存失败，内容暂留内存')}</span>
+          </div>
+        )}
         <div className="breadcrumbs">
           <button onClick={() => go(ctx.taskOrigin)}>
             {ctx.taskOrigin === 'personal'
-              ? t('我的看板')
+              ? t('看板')
               : ctx.taskOrigin === 'relations'
                 ? t('relation.title')
                 : task.project || t('未归组')}
           </button>
-          <span>/</span>
-          <span>{task.externalId || task.id}</span>
           <div className="source-status-group">
             <SourceBadge model={model} entity={task} open={ctx.showOrigin} />
             {task.origin?.kind === 'connector' && (
@@ -217,7 +247,10 @@ export function TaskDetail({ ctx, saved }) {
               </button>
             )}
           </div>
-          <div className="task-menu">
+        </div>
+        <div className="task-heading">
+          <h1>{task.title}</h1>
+          <div className="task-menu" ref={menuRef}>
             <IconButton label={t('任务更多操作')} onClick={() => setMore(!more)}>
               <DotsThree size={23} />
             </IconButton>
@@ -231,6 +264,7 @@ export function TaskDetail({ ctx, saved }) {
                         setModal({ type: 'task-basics' });
                       }}
                     >
+                      <PencilSimple size={16} />
                       {t('minimal.edit')}
                     </button>
                     {localTask && (
@@ -240,6 +274,7 @@ export function TaskDetail({ ctx, saved }) {
                           setModal({ type: 'task-context' });
                         }}
                       >
+                        <Info size={16} />
                         {t('完善任务信息')}
                       </button>
                     )}
@@ -278,18 +313,8 @@ export function TaskDetail({ ctx, saved }) {
             )}
           </div>
         </div>
-        <div className="task-heading">
-          <h1>{task.title}</h1>
-          {editable && (
-            <button className="quiet small" onClick={() => setModal({ type: 'task-basics' })}>
-              {t('minimal.edit')}
-            </button>
-          )}
-        </div>
         <div className="task-meta-line">
-          <span className="type-tag">
-            {t('minimal.typeValue', { type: taskTypeLabel(task, model, t) })}
-          </span>
+          <span className="type-tag">{taskTypeLabel(task, model, t)}</span>
           <Priority value={task.priority} />
           <span className="task-owner">
             {t('负责人')} · {task.owner === 'self' ? t('minimal.you') : t('未指定')}
@@ -301,7 +326,6 @@ export function TaskDetail({ ctx, saved }) {
               {t('已暂停')}
             </span>
           )}
-          {task.project && <span>{task.project}</span>}
         </div>
         {task.migrationNotice && (
           <p className="scope-note" role="status">
@@ -321,11 +345,6 @@ export function TaskDetail({ ctx, saved }) {
           >
             <div className="section-title">
               <h2>{t('minimal.content')}</h2>
-              {editable && !task.description && (
-                <button className="text-link" onClick={() => setModal({ type: 'task-basics' })}>
-                  {t('minimal.addContent')}
-                </button>
-              )}
             </div>
             {task.description ? (
               <Markdown body={task.description} />
@@ -413,31 +432,6 @@ export function TaskDetail({ ctx, saved }) {
             )}
           </section>
         </div>
-        <footer className="task-footer">
-          {(task.createdAt || task.updatedAt) && (
-            <p className="task-timestamps">
-              {task.createdAt && (
-                <span>
-                  {t('创建于')}{' '}
-                  <time dateTime={task.createdAt}>{formatTimestamp(task.createdAt, locale)}</time>
-                </span>
-              )}
-              {task.createdAt && task.updatedAt && <span aria-hidden="true">·</span>}
-              {task.updatedAt && (
-                <span>
-                  {t('最近修改')}{' '}
-                  <time dateTime={task.updatedAt}>{formatTimestamp(task.updatedAt, locale)}</time>
-                </span>
-              )}
-            </p>
-          )}
-        </footer>
-        <div className={`save-state${saved ? '' : ' save-state-error'}`} role="status">
-          <span>
-            {t(saved ? '本地已保存' : '保存失败，内容暂留内存')}
-            <small>{t('演示数据 · 仅当前浏览器')}</small>
-          </span>
-        </div>
       </section>
       <aside className="task-support" aria-label={t('任务流与资源')}>
         <TaskRelationsSummary
@@ -452,8 +446,13 @@ export function TaskDetail({ ctx, saved }) {
           />
         )}
         {hasResources && (
-          <section className="task-linked-resources">
-            <h2>{t('关联资源')}</h2>
+          <section className="task-flow-section task-linked-resources">
+            <div className="section-title">
+              <h2>{t('关联资源')}</h2>
+              <button className="text-link" onClick={() => setModal({ type: 'associations' })}>
+                {t('查看全部关联')}
+              </button>
+            </div>
             <Resources ctx={ctx} />
             <button
               className="quiet small inspector-history"
@@ -465,6 +464,31 @@ export function TaskDetail({ ctx, saved }) {
           </section>
         )}
       </aside>
+      <footer className="task-page-footer">
+        {(task.createdAt || task.updatedAt) && (
+          <p className="task-timestamps">
+            {task.createdAt && (
+              <span>
+                {t('创建于')}{' '}
+                <time dateTime={task.createdAt}>{formatTimestamp(task.createdAt, locale)}</time>
+              </span>
+            )}
+            {task.createdAt && task.updatedAt && <span aria-hidden="true">·</span>}
+            {task.updatedAt && (
+              <span>
+                {t('最近修改')}{' '}
+                <time dateTime={task.updatedAt}>{formatTimestamp(task.updatedAt, locale)}</time>
+              </span>
+            )}
+          </p>
+        )}
+        <div className={`save-state${saved ? '' : ' save-state-error'}`} role="status">
+          <span>
+            {t(saved ? '本地已保存' : '保存失败，内容暂留内存')}
+            <small>{t('演示数据 · 仅当前浏览器')}</small>
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }

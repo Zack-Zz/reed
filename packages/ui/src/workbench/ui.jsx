@@ -63,6 +63,14 @@ export function IconButton({ label, children, className = '', ...props }) {
     </button>
   );
 }
+export function TaskIdentity({ task }) {
+  return (
+    <span className="task-identity">
+      {task.externalId || task.id}
+      {task.project ? <small>{task.project}</small> : null}
+    </span>
+  );
+}
 export function Status({ value, text }) {
   const { t } = useI18n();
   return (

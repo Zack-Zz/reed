@@ -70,11 +70,9 @@ export function TaskRelationsSummary({ ctx, onLink }: Props) {
               {t('minimal.addRelation')}
             </button>
           )}
-          {relations.length > 0 && (
-            <button className="text-link" onClick={() => ctx.openRelations?.(ctx.task.id)}>
-              {t('relation.open')}
-            </button>
-          )}
+          <button className="text-link" onClick={() => ctx.openRelations?.(ctx.task.id)}>
+            {t('relation.open')}
+          </button>
         </div>
       </div>
       {!relations.length && <p className="muted">{t('minimal.noRelations')}</p>}

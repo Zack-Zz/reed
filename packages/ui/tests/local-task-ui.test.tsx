@@ -62,7 +62,7 @@ describe('local task creation and explicit start', () => {
     expect(html).toContain('aria-label="切换任务状态"');
     expect(html).not.toContain('未关联仓库');
     expect(html).toContain('先整理本地任务目标');
-    expect(html).toContain('编辑任务');
+    expect(html).toContain('class="task-menu"');
   });
 
   it('offers comments instead of separate review and result actions', () => {

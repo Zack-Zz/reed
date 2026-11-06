@@ -133,12 +133,17 @@ describe('minimal task', () => {
       const s = scenario();
       const html = s.render(null, locale);
       expect(html).toContain(locale === 'en' ? 'Task content' : '任务内容');
-      expect(html).toContain(locale === 'en' ? 'Edit task' : '编辑任务');
+      expect(html).toContain('class="task-menu"');
+      expect(html).not.toContain(locale === 'en' ? 'Add task content' : '添加任务内容');
       expect(html).toContain(
         locale === 'en' ? 'Add goal and acceptance criteria' : '添加目标与验收条件',
       );
       expect(html).toContain(locale === 'en' ? 'No task goal yet.' : '未填写任务目标。');
-      expect(html).toContain(locale === 'en' ? 'Task type: Uncategorized' : '任务类型：未分类');
+      expect(html).toContain(
+        locale === 'en'
+          ? '<span class="type-tag">Uncategorized</span>'
+          : '<span class="type-tag">未分类</span>',
+      );
       expect(html).toContain(
         locale === 'en' ? 'No acceptance criteria configured.' : '未设置验收条件。',
       );
@@ -161,7 +166,7 @@ describe('minimal task', () => {
     s.submit();
     s.complete();
     const html = s.render();
-    expect(html).toContain('任务类型：未分类');
+    expect(html).toContain('<span class="type-tag">未分类</span>');
     expect(html).toContain('未设置验收条件。');
     expect(html).toContain('暂无评论');
     expect(html).toContain('添加评论');
@@ -256,7 +261,7 @@ describe('minimal task', () => {
     delete oldBasis.title;
     delete oldBasis.description;
     decision.basisSnapshot = JSON.stringify(oldBasis);
-    const stored = JSON.stringify({ version: 3, model: s.model() });
+    const stored = JSON.stringify({ version: 5, model: s.model() });
     const restored = createMockWorkbenchRuntime({
       storage: { getItem: () => stored, setItem: vi.fn() },
     }).load() as ReturnType<typeof createInitialState>;

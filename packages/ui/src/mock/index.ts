@@ -42,6 +42,20 @@ const isRelationBindings = (value: unknown): boolean =>
 function isUsableDraft(model: unknown): boolean {
   if (!isRecord(model) || !isCollection(model.tasks) || model.tasks.length === 0) return false;
   if (![model.sessions, model.branches, model.events].every(isCollection)) return false;
+  // v4 起草稿必须携带项目工作区建模集合（含设备维度，缺设备则回退新版样例）。
+  if (
+    ![model.projects, model.directories, model.agents, model.agentWorkspaces, model.devices].every(
+      isCollection,
+    )
+  )
+    return false;
+  if (
+    !(model.sessions as { agentWorkspaceId?: unknown }[]).every(
+      (session) => session.agentWorkspaceId == null || typeof session.agentWorkspaceId === 'string',
+    ) ||
+    !model.tasks.every((task) => task.projectId == null || typeof task.projectId === 'string')
+  )
+    return false;
   if (
     model.relations !== undefined &&
     (!isCollection(model.relations) ||
@@ -145,7 +159,8 @@ export function createMockWorkbenchRuntime(
         if (savedModel?.tasks) {
           for (const task of savedModel.tasks) if (task.workflow) task.workflow.legacy = true;
         }
-        if ((saved?.version === 2 || saved?.version === 3) && isUsableDraft(savedModel))
+        // v5 之前的旧结构不再回读：按约定回退到新版建模样例（含设备维度样例）。
+        if (saved?.version === 5 && isUsableDraft(savedModel))
           return sources.normalizeState(savedModel);
       } catch {
         /* Missing/corrupt demo drafts fall back to samples. */
@@ -154,7 +169,7 @@ export function createMockWorkbenchRuntime(
     },
     save(snapshot) {
       try {
-        storage().setItem(STORE, JSON.stringify({ version: 3, model: snapshot }));
+        storage().setItem(STORE, JSON.stringify({ version: 5, model: snapshot }));
         return true;
       } catch {
         return false;

@@ -34,7 +34,9 @@ The Rust Core, protocol and generated client contracts remain unchanged.
 The official frontend source currently uses a mock adapter while product flows
 are being defined. No real Agent, Git, CLI, credentials or provider writes are enabled.
 Simulation labels remain visible in the relevant flows and About Reed.
-The adapter retains the `reed-demo-v2` key, `reed-locale` and `reed-theme`. New saves use envelope version 3 and can read version 2.
+The adapter retains the `reed-demo-v2` key, `reed-locale` and `reed-theme`. New saves use
+envelope version 5 and only restore version 5 drafts; earlier envelopes fall back to
+the remodeled samples, as agreed for demo-stage data.
 Legacy step completion is not converted into task acceptance: content and original state history remain; old completed/archived records without task-level completion evidence return to Processing with a review notice.
 Missing or unreadable drafts fall back to the existing samples; failed writes keep
 in-memory state and report save failure. Browser and Tauri stores remain separate.
@@ -44,6 +46,46 @@ task UI; task flow is represented by linked tasks. Task description, goal, artif
 and comments use Markdown with image paste/upload/link support; mock images are stored as
 size-limited data URLs, and documents remain read-only. Legacy workflow data is retained for
 history but no longer gates completion.
+
+2026-11-04: the mock model carries an explicit project workspace layer. Projects aggregate
+local directories; a git directory is a repo (named by its directory) and owns branches.
+Agent workspaces record each agent-side project and converge into a Reed project through
+shared directories: candidates are linked or ignored explicitly, directory membership is
+single-project, and promoting a candidate to a new project borrows the agent-side name when
+no own name is given. Sessions attach to agent workspaces; tasks keep `projectId` plus
+display mirrors (`project`, `repo`, session `host`) that are presentation convenience, not a
+second source of truth. Binding a host session ensures a linked workspace for that agent.
+The project view and navigation integration follow in the next pass.
+
+Follow-up refinements on the same day keep identity authoritative: assigning a local task
+to a new project name creates that project (unique name), and editing the assignment moves
+`projectId` with the name. The `repo` mirror resolves a directory identity inside the task's
+own project at creation/edit time; loading never backfills a directory by display name
+across projects or when ambiguous — stale cross-project identities are dropped. Only
+registered hosts can attach sessions (unregistered options are not offered and are
+rejected); the resource drawer's "view task" closes itself before navigating, and the
+directory dialog keeps the entered path and error when linking fails.
+
+Loading a local version 5 draft that retained only a nonempty project name restores the
+missing project and task identity without resetting task content, comments, or history.
+Ungrouped tasks and unlinked external project names do not create projects automatically.
+Assignment changes apply existing resource protections to the actual directory identity:
+matching repo names cannot silently replace the repo used by a session or workspace.
+Opening a task node from the relation dialog closes the graph before showing the task drawer.
+
+Later on 2026-11-04 the project view shipped: it maintains directories (git repos
+with their branches), lists agent workspaces with their sessions (session rows
+carry branch and task annotations), exposes candidate workspaces with
+link/promote/ignore actions, and embeds the project's task list. The standalone
+top-level 会话/分支 navigation entries were removed together with
+`ResourcePage`; session and branch details now open in a shared resource drawer
+reachable from the project view, the task drawer associations modal and task
+detail resource rows. Directory maintenance moved into a sidebar edit action that
+opens a project-directories dialog: the user provides an absolute path (or a
+directory picker, which yields a display name only in browsers), and the git/plain
+kind is auto-detected instead of chosen — detection is simulated in the mock and
+belongs to a Core filesystem adapter later. Sidebar projects expand to a second
+level listing agent-grouped sessions that open the resource drawer directly.
 
 The Demo Tauri build flavor retains `dev.reed.desktop.demo` and its local origin;
 rebuilding it does not reset existing preview data. It now loads the same frontend
@@ -161,6 +203,10 @@ Layout and temporary view types live in `workbench`; relationship and required-r
 Older version 3 drafts without `relations` receive an empty collection. Existing tasks are not relinked automatically.
 The example family is added only when explicitly requested. See [relationship preview verification](task-relations-ui-verification.md) for the internal review and browser evidence.
 
+2026-11-04: inside the relations dialog the canvas now fills the remaining dialog
+height instead of using the viewport-based clamp, so the dialog no longer ends
+with a blank strip; the full-page view keeps its clamped canvas height.
+
 Relationship review pins exact required completion identities, distinguishes reference
 from required prerequisites, and retains a viewport for each starting task during
 navigation. Same-scope artifact corrections retract affected acceptance evidence;
@@ -206,3 +252,17 @@ drawer or a narrow window. Each document is listed once, including all versions,
 execution results, scope labels and the existing review/reuse action. Empty fields
 keep their viewing positions with compact spacing. This is a presentation change;
 the mock business rules and storage format are unchanged by this layout pass.
+
+2026-11-03: the supporting area is no longer drawn as a visually separate region.
+The tinted background and the bordered box in the drawer or narrow windows were
+removed, and the relationships, task context and linked resources modules now
+render through the same section primitive as the reading modules
+— shared section titles, dividers and spacing. Module boundaries stay uniform at
+module level instead of splitting the page into two differently styled regions.
+The task timestamps and the local save state also left the reading column: they
+render as a page footer after the support area, so single-column flows no longer
+sandwich them between module groups, and wide views show them as one status
+footer row below the two columns.
+Local save failures additionally raise a persistent alert pinned above the
+reading content (sticky, `role="alert"`); it disappears once the next save
+succeeds, and successful saves stay quiet in the footer.

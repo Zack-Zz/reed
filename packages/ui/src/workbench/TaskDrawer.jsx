@@ -1,7 +1,7 @@
 import { useI18n } from './i18n.jsx';
 import { useEffect, useRef } from 'react';
-import { ArrowUpRight, X } from '@phosphor-icons/react';
-import { IconButton } from './ui.jsx';
+import { ArrowSquareOut, X } from '@phosphor-icons/react';
+import { IconButton, TaskIdentity } from './ui.jsx';
 
 export function TaskDrawer({ task, close, openFullPage, intent, notice, children }) {
   const { t: tr } = useI18n();
@@ -30,13 +30,10 @@ export function TaskDrawer({ task, close, openFullPage, intent, notice, children
       }}
     >
       <header className="drawer-header">
-        <span>
-          {task.externalId || task.id}
-          <small>{task.project}</small>
-        </span>
+        <TaskIdentity task={task} />
         <div>
           <IconButton label={tr('打开完整任务页面')} onClick={openFullPage}>
-            <ArrowUpRight size={18} />
+            <ArrowSquareOut size={18} />
           </IconButton>
           <IconButton label={tr('关闭任务详情')} onClick={close}>
             <X size={19} />

@@ -8,6 +8,7 @@ import {
   MagnifyingGlass,
   ListBullets,
   SquaresFour,
+  TreeStructure,
 } from '@phosphor-icons/react';
 import {
   needsAttention,
@@ -44,7 +45,7 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
   const { getTaskTypes, TASK_STATUSES, BOARD_COLUMNS, getOriginInfo } =
     useWorkbenchRuntime().services;
   const { t: tr, locale } = useI18n();
-  const { model, openTask, setModal } = ctx;
+  const { model, openTask, openRelations, setModal } = ctx;
   const TASK_TYPES = getTaskTypes(model, true);
   const { query, source, taskType = 'all', status = 'all', board } = listUi;
   const setQuery = (value) => setListUi((s) => ({ ...s, query: value }));
@@ -252,44 +253,53 @@ export function TaskList({ ctx, filter, setFilter, listUi, setListUi }) {
             <span />
           </div>
           {tasks.map((t) => (
-            <button className="task-row" key={t.id} onClick={() => openTask(t.id)}>
-              <span className="task-name">
-                <strong>{t.title}</strong>
-                <small>
-                  <span className="task-inline-type">{taskTypeLabel(t, model, tr)} · </span>
-                  {t.externalId || t.id} ·{' '}
-                  <SourceBadge model={model} entity={t} compact interactive={false} />
-                </small>
-                {['running', 'waiting', 'unknown', 'failed'].includes(t.attention) && (
-                  <small>{tr(activity[t.attention])}</small>
-                )}
-                {['done', 'archived'].includes(t.status) &&
-                  t.completions?.at(-1)?.applicability === 'pending' && (
-                    <small className="basis-warning">{tr('完成依据待复核')}</small>
+            <div className="task-row" key={t.id}>
+              <button className="task-row-main" onClick={() => openTask(t.id)}>
+                <span className="task-name">
+                  <strong>{t.title}</strong>
+                  <small>
+                    <span className="task-inline-type">{taskTypeLabel(t, model, tr)} · </span>
+                    {t.externalId || t.id} ·{' '}
+                    <SourceBadge model={model} entity={t} compact interactive={false} />
+                  </small>
+                  {['running', 'waiting', 'unknown', 'failed'].includes(t.attention) && (
+                    <small>{tr(activity[t.attention])}</small>
                   )}
-                <small className="task-metadata">
-                  <span>
-                    {tr('负责人')} · {t.owner === 'self' ? tr('minimal.you') : tr('未指定')}
-                  </span>
-                  {t.createdAt && (
+                  {['done', 'archived'].includes(t.status) &&
+                    t.completions?.at(-1)?.applicability === 'pending' && (
+                      <small className="basis-warning">{tr('完成依据待复核')}</small>
+                    )}
+                  <small className="task-metadata">
                     <span>
-                      {tr('创建于')} {formatTimestamp(t.createdAt, locale)}
+                      {tr('负责人')} · {t.owner === 'self' ? tr('minimal.you') : tr('未指定')}
                     </span>
-                  )}
-                  {t.updatedAt && (
-                    <span>
-                      {tr('最近修改')} {formatTimestamp(t.updatedAt, locale)}
-                    </span>
-                  )}
-                </small>
-              </span>
-              <span className="task-type">
-                <Priority value={t.priority} />
-              </span>
-              <Status value={t.status} text={taskStatus(t)} />
-              <TaskCounts task={t} />
-              <CaretRight size={15} />
-            </button>
+                    {t.createdAt && (
+                      <span>
+                        {tr('创建于')} {formatTimestamp(t.createdAt, locale)}
+                      </span>
+                    )}
+                    {t.updatedAt && (
+                      <span>
+                        {tr('最近修改')} {formatTimestamp(t.updatedAt, locale)}
+                      </span>
+                    )}
+                  </small>
+                </span>
+                <span className="task-type">
+                  <Priority value={t.priority} />
+                </span>
+                <Status value={t.status} text={taskStatus(t)} />
+                <TaskCounts task={t} />
+                <CaretRight size={15} />
+              </button>
+              <button
+                className="task-row-graph"
+                aria-label={tr('查看 {p0} 的关系图', { p0: t.externalId || t.id })}
+                onClick={() => openRelations(t.id)}
+              >
+                <TreeStructure size={15} />
+              </button>
+            </div>
           ))}
         </div>
       )}

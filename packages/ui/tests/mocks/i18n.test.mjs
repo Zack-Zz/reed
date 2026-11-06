@@ -47,8 +47,8 @@ test('stored locale survives reload and storage failures preserve an in-memory u
 test('fixed interface messages switch languages while unknown business content is preserved', () => {
   const en = createTranslator('en'),
     zh = createTranslator('zh-CN');
-  assert.equal(en('我的看板'), 'My board');
-  assert.equal(zh('我的看板'), '我的看板');
+  assert.equal(en('看板'), 'Board');
+  assert.equal(zh('看板'), '看板');
   assert.equal(en('成员导入失败后自动补偿'), '成员导入失败后自动补偿');
   assert.equal(en('feature/需求-R&{id}'), 'feature/需求-R&{id}');
 });

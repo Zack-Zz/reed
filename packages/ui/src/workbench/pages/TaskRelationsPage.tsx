@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import {
   ArrowLeft,
+  ArrowSquareIn,
   ArrowsOut,
   CaretDown,
   CaretRight,
@@ -16,7 +17,7 @@ import {
 import { useI18n } from '../i18n.jsx';
 import { Select } from '../Select.jsx';
 import { SourceBadge } from '../SourceBadge.jsx';
-import { Status, taskStatus, taskTypeLabel } from '../ui.jsx';
+import { IconButton, Status, taskStatus, taskTypeLabel } from '../ui.jsx';
 import {
   getRelationAncestors,
   layoutTaskRelations,
@@ -29,10 +30,14 @@ export function TaskRelationsPage({
   ctx,
   relationsUi: ui,
   setRelationsUi,
+  embedded = false,
+  onSwitchToDialog,
 }: {
   ctx: RelationsContext;
   relationsUi: RelationsUi;
   setRelationsUi: SetRelationsUi;
+  embedded?: boolean;
+  onSwitchToDialog?: () => void;
 }) {
   const { t } = useI18n();
   const { model } = ctx;
@@ -183,21 +188,30 @@ export function TaskRelationsPage({
     });
   }
   return (
-    <section className="page task-relations-page">
-      <header className="page-heading">
-        <div>
-          <h1>{t('relation.title')}</h1>
-          <p>{t('relation.subtitle')}</p>
-        </div>
-        <button
-          type="button"
-          className="quiet"
-          title={t('relation.exampleNote')}
-          onClick={ctx.showRelationExample}
-        >
-          {t('relation.example')}
-        </button>
-      </header>
+    <section className={`task-relations-page${embedded ? '' : ' page'}`}>
+      {!embedded && (
+        <header className="page-heading">
+          <div>
+            <h1>{t('relation.title')}</h1>
+            <p>{t('relation.subtitle')}</p>
+          </div>
+          <div className="page-heading-actions">
+            {onSwitchToDialog && (
+              <IconButton label="在弹窗中打开" onClick={onSwitchToDialog}>
+                <ArrowSquareIn size={18} />
+              </IconButton>
+            )}
+            <button
+              type="button"
+              className="quiet"
+              title={t('relation.exampleNote')}
+              onClick={ctx.showRelationExample}
+            >
+              {t('relation.example')}
+            </button>
+          </div>
+        </header>
+      )}
       {!root ? (
         <div className="relations-empty">
           <TreeStructure size={34} />
@@ -209,77 +223,81 @@ export function TaskRelationsPage({
         </div>
       ) : (
         <>
-          <div className="relations-toolbar">
-            <label className="relation-root-control">
-              <span>{t('relation.root')}</span>
-              <Select
-                aria-label={t('relation.chooseRoot')}
-                value={rootId}
-                onChange={(event: { target: { value: string } }) => startHere(event.target.value)}
-              >
-                {model.tasks.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.id} · {task.title}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <div className="relation-view-switches">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={ui.showRelated}
-                  onChange={(event) =>
-                    setRelationsUi((state) => ({ ...state, showRelated: event.target.checked }))
-                  }
-                />
-                {t('relation.showRelated')}
+          {!embedded && (
+            <div className="relations-toolbar">
+              <label className="relation-root-control">
+                <span>{t('relation.root')}</span>
+                <Select
+                  aria-label={t('relation.chooseRoot')}
+                  value={rootId}
+                  onChange={(event: { target: { value: string } }) => startHere(event.target.value)}
+                >
+                  {model.tasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.id} · {task.title}
+                    </option>
+                  ))}
+                </Select>
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={ui.showDependencies}
-                  onChange={(event) =>
-                    setRelationsUi((state) => ({
-                      ...state,
-                      showDependencies: event.target.checked,
-                    }))
-                  }
-                />
-                {t('relation.showDependencies')}
-              </label>
+              <div className="relation-view-switches">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={ui.showRelated}
+                    onChange={(event) =>
+                      setRelationsUi((state) => ({ ...state, showRelated: event.target.checked }))
+                    }
+                  />
+                  {t('relation.showRelated')}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={ui.showDependencies}
+                    onChange={(event) =>
+                      setRelationsUi((state) => ({
+                        ...state,
+                        showDependencies: event.target.checked,
+                      }))
+                    }
+                  />
+                  {t('relation.showDependencies')}
+                </label>
+              </div>
             </div>
-          </div>
-          <nav className="relation-breadcrumbs" aria-label={t('relation.path')}>
-            {ancestors.length > 0 && (
-              <button
-                className="quiet"
-                type="button"
-                onClick={() => startHere(ancestors.at(-1)!.id)}
-              >
-                <ArrowLeft size={14} />
-                {t('relation.parent')}
-              </button>
-            )}
-            {ancestors.map((task) => (
-              <span key={task.id}>
-                <button type="button" onClick={() => startHere(task.id)}>
-                  {task.title}
+          )}
+          {!embedded && (
+            <nav className="relation-breadcrumbs" aria-label={t('relation.path')}>
+              {ancestors.length > 0 && (
+                <button
+                  className="quiet"
+                  type="button"
+                  onClick={() => startHere(ancestors.at(-1)!.id)}
+                >
+                  <ArrowLeft size={14} />
+                  {t('relation.parent')}
                 </button>
-                <CaretRight size={12} />
-              </span>
-            ))}
-            <strong>{root.title}</strong>
-            {ctx.task && ctx.task.id !== rootId && (
-              <button
-                className="quiet relation-current"
-                type="button"
-                onClick={() => startHere(ctx.task!.id)}
-              >
-                {t('relation.current')}
-              </button>
-            )}
-          </nav>
+              )}
+              {ancestors.map((task) => (
+                <span key={task.id}>
+                  <button type="button" onClick={() => startHere(task.id)}>
+                    {task.title}
+                  </button>
+                  <CaretRight size={12} />
+                </span>
+              ))}
+              <strong>{root.title}</strong>
+              {ctx.task && ctx.task.id !== rootId && (
+                <button
+                  className="quiet relation-current"
+                  type="button"
+                  onClick={() => startHere(ctx.task!.id)}
+                >
+                  {t('relation.current')}
+                </button>
+              )}
+            </nav>
+          )}
           <div className="relations-frame">
             <div
               ref={viewport}
@@ -504,7 +522,7 @@ export function TaskRelationsPage({
               </span>
             </div>
           </div>
-          {(ui.showRelated || ui.showDependencies) && (
+          {!embedded && (ui.showRelated || ui.showDependencies) && (
             <aside className="relation-auxiliary" aria-label={t('relation.auxiliary')}>
               <h2>
                 {t('relation.auxiliary')}
@@ -555,7 +573,7 @@ export function TaskRelationsPage({
               )}
             </aside>
           )}
-          <p className="relation-boundary-note">{t('relation.noAutomation')}</p>
+          {!embedded && <p className="relation-boundary-note">{t('relation.noAutomation')}</p>}
           <p id="relations-pan-help" className="relation-keyboard-help">
             {t('relation.panHelp')}
           </p>

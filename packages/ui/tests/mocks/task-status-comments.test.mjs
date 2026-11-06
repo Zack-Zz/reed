@@ -277,7 +277,7 @@ test('invalid and oversized comments reject atomically, and legacy drafts gain a
   for (const task of old.tasks) delete task.comments;
   const restored = createMockWorkbenchRuntime({
     storage: {
-      getItem: () => JSON.stringify({ version: 3, model: old }),
+      getItem: () => JSON.stringify({ version: 5, model: old }),
       setItem() {},
     },
   }).load();
@@ -291,7 +291,7 @@ test('unrenderable comment drafts do not reach the UI', () => {
   ];
   const runtime = createMockWorkbenchRuntime({
     storage: {
-      getItem: () => JSON.stringify({ version: 3, model: s.state() }),
+      getItem: () => JSON.stringify({ version: 5, model: s.state() }),
       setItem() {},
     },
   });

@@ -44,6 +44,7 @@ function renderTask(
     setStage: vi.fn(),
     run: vi.fn(),
     openTask: vi.fn(),
+    openRelations: vi.fn(),
     go: vi.fn(),
     showOrigin: vi.fn(),
   };
@@ -107,8 +108,14 @@ describe('unified task presentation', () => {
     expect(html).toContain('aria-label="任务状态筛选"');
     expect(html).not.toContain('aria-label="阶段筛选"');
   });
-  it('uses explicit editing before review and read-only information after completion', () => {
-    expect(renderTask('todo')).toContain('>编辑任务</button>');
+  it('opens the relation graph from each list row without leaving the row action intact', () => {
+    const html = renderTask('in_progress', false, 'zh-CN', 'list');
+    expect(html).toContain('查看 LOCAL-1 的关系图');
+    expect(html).toContain('class="task-row-main"');
+  });
+  it('keeps explicit editing behind the task menu instead of an inline title button', () => {
+    expect(renderTask('todo')).toContain('aria-label="任务更多操作"');
+    expect(renderTask('todo')).not.toContain('>编辑任务</button>');
     expect(renderTask('todo')).not.toContain('aria-label="修改任务类型"');
     expect(renderTask('done')).not.toContain('>编辑任务</button>');
   });

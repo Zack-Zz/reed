@@ -1,0 +1,349 @@
+/* 项目视图：目录与工程 / Agent 会话 / 候选收敛 / 项目任务。 */
+.project-page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.project-page .page-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-rename input {
+  width: 260px;
+}
+.project-section {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.project-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.project-section-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.project-directory-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-directory-form input {
+  flex: 1;
+  min-width: 0;
+}
+.project-directory {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.project-directory-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.project-directory-name svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.project-directory-name code {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-branch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.project-branch-list li:last-child .project-branch-row {
+  border-bottom: 0;
+}
+.project-branch-row code {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.project-branch-row small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-branch-row .muted {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.project-agent-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.project-agent-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-agent-name svg {
+  color: var(--muted);
+}
+.project-agent-name small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.project-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.project-agent-group .project-session-row:last-child {
+  border-bottom: 0;
+}
+.project-session-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.project-candidate {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.project-candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.project-task-list {
+  display: flex;
+  flex-direction: column;
+}
+.project-task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.project-task-list .project-task-row:last-child {
+  border-bottom: 0;
+}
+.project-task-row .mono {
+  color: var(--muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.project-task-row strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+/* 会话/分支详情抽屉 */
+.resource-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
+  width: min(520px, calc(100vw - 80px));
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 12px 0 0 12px;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  box-shadow: -12px 0 60px #17233615;
+}
+.resource-drawer[open] {
+  display: flex;
+  flex-direction: column;
+}
+.resource-drawer::backdrop {
+  background: #111b2b18;
+}
+.resource-drawer .drawer-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 26px 30px;
+}
+.resource-drawer .resource-detail {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: baseline;
+}
+.resource-drawer .resource-detail dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.resource-drawer .resource-detail dd {
+  margin: 0;
+  font-size: 13px;
+  min-width: 0;
+}
+.resource-drawer .actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+.resource-drawer .footnote {
+  margin-top: 14px;
+}
+@media (max-width: 650px) {
+  .resource-drawer {
+    width: 100vw;
+    border-radius: 0;
+    border-left: 0;
+  }
+  .resource-drawer .drawer-content {
+    padding: 18px;
+  }
+}
+
+/* 侧栏项目一级/二级（Agent 会话）与编辑入口 */
+.project-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.project-entry-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.project-nav .project-edit {
+  width: 30px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.project-entry:hover .project-edit,
+.project-edit:focus-visible {
+  opacity: 1;
+}
+.project-sessions {
+  margin: 2px 0 8px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.project-sessions .project-agent-label {
+  margin: 6px 0 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.project-sessions > div > button {
+  background: transparent;
+  border: 0;
+  padding: 4px 8px;
+  text-align: left;
+  color: var(--ink);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-sessions > div > button:hover {
+  color: var(--blue);
+}
+/* 目录管理弹窗 */
+.project-directory-dialog .project-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.project-directory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.project-directory-row > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.project-directory-row span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.project-directory-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-directory-row code {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-directory-row small {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.project-directory-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-directory-add input {
+  flex: 1;
+  min-width: 0;
+}

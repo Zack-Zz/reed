@@ -14,7 +14,7 @@ export function TaskContextSection({
 }) {
   const { t } = useI18n();
   return (
-    <section className="task-context-section">
+    <section className="task-flow-section task-context-section">
       <div className="section-title">
         <h2>{t('任务信息')}</h2>
         {edit && (

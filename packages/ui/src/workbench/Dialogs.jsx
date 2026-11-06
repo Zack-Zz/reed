@@ -5,6 +5,7 @@ import { documentExportName } from './document-export';
 import { LocalTaskDialog } from './LocalTaskDialog';
 import { TaskFlowDialogs } from './TaskFlowDialogs';
 import { TaskRelationDialog } from './TaskRelationDialog';
+import { ProjectDirectoryDialog } from './ProjectDirectoryDialog';
 import { TaskBasicsDialog } from './TaskBasicsDialog';
 import { useEffect, useState } from 'react';
 import {
@@ -66,6 +67,10 @@ export function Dialogs({ ctx }) {
   if (!modal) return null;
   if (modal.type === 'task-basics') return <TaskBasicsDialog key={task.id} ctx={ctx} />;
   if (modal.type.startsWith('relation-')) return <TaskRelationDialog ctx={ctx} />;
+  if (modal.type === 'project-directories')
+    return (
+      <ProjectDirectoryDialog ctx={ctx} projectId={modal.projectId} close={() => setModal(null)} />
+    );
   if (modal.type === 'edit-document')
     return (
       <TaskFlowDialogs
@@ -424,7 +429,7 @@ export function Dialogs({ ctx }) {
                   key={s.id}
                   onClick={() => {
                     close();
-                    go('sessions', task.id, s.id);
+                    ctx.openResource?.('session', s.id);
                   }}
                 >
                   <ChatCircleDots size={21} />
@@ -729,7 +734,7 @@ function Prepare({ ctx, close }) {
                 value={host}
                 onChange={(e) => setHost(e.target.value)}
               >
-                {['Codex', 'Claude Code', 'ZCode', 'DSH'].map((h) => (
+                {['Codex', 'Claude Code', 'ZCode'].map((h) => (
                   <option key={h}>{h}</option>
                 ))}
               </Select>

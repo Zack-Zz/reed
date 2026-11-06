@@ -199,7 +199,7 @@ describe('local task and workflow configuration', () => {
       templateVersion: 1,
     });
     const runtime = createMockWorkbenchRuntime({
-      storage: { getItem: () => JSON.stringify({ version: 3, model: state }), setItem() {} },
+      storage: { getItem: () => JSON.stringify({ version: 5, model: state }), setItem() {} },
     });
     const restored: any = runtime.load();
     expect(restored.tasks.at(-1).title).toBe('重载仍保留');
@@ -281,7 +281,7 @@ it.each(['missing steps', 'empty published version'])(
     if (kind === 'missing steps') state.tasks.at(-1).workflow.steps = [];
     else state.configuration.templates.at(-1).versions[0].steps = [];
     const runtime = createMockWorkbenchRuntime({
-      storage: { getItem: () => JSON.stringify({ version: 3, model: state }), setItem() {} },
+      storage: { getItem: () => JSON.stringify({ version: 5, model: state }), setItem() {} },
     });
     expect((runtime.load() as any).tasks.some((t: any) => t.title === '损坏稿不能绕过验收')).toBe(
       false,

@@ -33,7 +33,11 @@ interface TaskDraft {
 }
 interface Props {
   task?: LocalTaskInfo;
-  model: { tasks: LocalTaskInfo[]; configuration?: ConfigurationModel['configuration'] };
+  model: {
+    tasks: LocalTaskInfo[];
+    projects?: { id: string; name: string }[];
+    configuration?: ConfigurationModel['configuration'];
+  };
   initialProject?: string;
   act: (
     command: WorkbenchCommand,
@@ -103,7 +107,8 @@ export function LocalTaskDialog({
     return task ? initial : restoreDraft(draftKey, initial);
   });
   const taskTypes = allTaskTypes.filter((type) => type.enabled || type.id === fields.taskType);
-  const projects = [...new Set(model.tasks.map((item) => item.project).filter(Boolean))];
+  // 项目候选来自项目工作区模型；输入新名称将在创建时建立真实项目。
+  const projects = (model.projects ?? []).map((item) => item.name);
   const [customProject, setCustomProject] = useState(
     Boolean(fields.project && !projects.includes(fields.project)),
   );

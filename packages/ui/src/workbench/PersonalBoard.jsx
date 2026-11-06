@@ -17,6 +17,7 @@ import {
   DotsThree,
   DotsSixVertical,
   WarningCircle,
+  TreeStructure,
 } from '@phosphor-icons/react';
 
 import { SourceBadge } from './SourceBadge.jsx';
@@ -34,7 +35,7 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
   const { getBoardColumn, getTaskStatusChange, getTaskTypes, getOriginInfo, BOARD_COLUMNS } =
     useWorkbenchRuntime().services;
   const { t: tr } = useI18n();
-  const { model, openTask, setModal } = ctx;
+  const { model, openTask, openRelations, setModal } = ctx;
   const TASK_TYPES = getTaskTypes(model, true);
   const columns = useRef({});
   const dragLock = useRef(false);
@@ -47,12 +48,13 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
   const { query, status = 'all', taskType = 'all', project, source = 'all' } = boardUi;
   const update = (patch) => setBoardUi((previous) => ({ ...previous, ...patch }));
   const projects = [
-    ...new Set(
-      model.tasks
+    ...new Set([
+      ...(model.projects ?? []).map((item) => item.name),
+      ...model.tasks
         .filter((t) => t.status !== 'archived')
         .map((t) => t.project)
         .filter(Boolean),
-    ),
+    ]),
   ];
   const entries = model.tasks
     .map((task) => ({ task, column: getBoardColumn(task, model.sessions) }))
@@ -187,7 +189,7 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
     <section className="page personal-page">
       <header className="page-heading">
         <div>
-          <h1>{tr('我的看板')}</h1>
+          <h1>{tr('看板')}</h1>
           <p>{tr('手头的工作，下一步一目了然。')}</p>
         </div>
         <div className="heading-actions">
@@ -428,6 +430,14 @@ export function PersonalBoard({ ctx, boardUi, setBoardUi }) {
                               <span>{task.workspace.branch}</span>
                             </button>
                           )}
+                          <button
+                            aria-label={tr('查看 {p0} 的关系图', {
+                              p0: task.externalId || task.id,
+                            })}
+                            onClick={() => openRelations(task.id)}
+                          >
+                            <TreeStructure size={14} />
+                          </button>
                           <IconButton
                             label={tr('移动 {p0}', { p0: task.externalId || task.id })}
                             className="card-move-button"

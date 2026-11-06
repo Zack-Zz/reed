@@ -1,6 +1,7 @@
 @import './select.css';
 @import './task-relations.css';
 @import './configuration.css';
+@import './project.css';
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
@@ -85,11 +86,15 @@ select,
 textarea {
   outline-offset: 4px;
 }
-button:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--blue);
+}
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: none;
+  border-color: color-mix(in srgb, var(--blue) 70%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 12%, transparent);
 }
 a {
   color: var(--blue);
@@ -294,6 +299,10 @@ textarea::placeholder {
   background: var(--selected);
   color: var(--ink);
 }
+.main-nav .saved-views {
+  padding: 0 10px 6px 39px;
+  gap: 2px;
+}
 .app-workspace {
   flex: 1;
   min-width: 0;
@@ -345,7 +354,7 @@ textarea::placeholder {
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #647080;
+  color: var(--muted);
   min-height: 26px;
 }
 .breadcrumbs button {
@@ -368,6 +377,9 @@ textarea::placeholder {
   color: var(--warning);
 }
 .task-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   position: relative;
   margin-left: auto;
 }
@@ -640,7 +652,6 @@ textarea::placeholder {
   margin-top: 25px !important;
 }
 .save-state {
-  margin-top: auto;
   padding-top: 22px;
   border-top: 1px solid var(--line);
   display: flex;
@@ -748,12 +759,19 @@ textarea::placeholder {
   flex: 1;
   max-width: 350px;
 }
+.search:focus-within {
+  border-color: color-mix(in srgb, var(--blue) 70%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 12%, transparent);
+}
 .search input {
   border: 0;
   background: none;
-  outline-offset: 0;
   width: 100%;
   font-size: 13px;
+}
+.search input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 .view-switch {
   display: flex;
@@ -770,8 +788,7 @@ textarea::placeholder {
 .task-table {
   border-top: 1px solid var(--line);
 }
-.table-head,
-.task-row {
+.table-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 112px 168px 168px 16px;
   gap: 18px;
@@ -784,12 +801,45 @@ textarea::placeholder {
   border-bottom: 1px solid var(--line);
 }
 .task-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 6px;
+  align-items: center;
   width: 100%;
   text-align: left;
   padding: 21px 12px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
   border-radius: 3px;
+}
+.task-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px 168px 168px 16px;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.task-row-graph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.task-row-graph:hover {
+  color: var(--blue);
+  background: var(--selected);
 }
 .task-row:hover {
   background: var(--soft);
@@ -798,7 +848,7 @@ textarea::placeholder {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.task-row > .status {
+.task-row-main > .status {
   min-width: 0;
   max-width: 100%;
   white-space: normal;
@@ -1606,12 +1656,12 @@ dd {
 }
 @media (max-width: 850px) {
   .table-head,
-  .task-row {
+  .task-row-main {
     grid-template-columns: minmax(0, 1fr) 168px 16px;
   }
   .table-head span:nth-child(2),
-  .task-row > .task-phase,
-  .task-row > .task-type {
+  .task-row-main > .task-phase,
+  .task-row-main > .task-type {
     display: none;
   }
 }
@@ -1821,22 +1871,22 @@ dd {
   .table-head {
     display: none;
   }
-  .task-row {
+  .task-row-main {
     grid-template-columns: minmax(0, 1fr) 16px;
     grid-template-areas: 'task arrow' 'state arrow';
     gap: 8px;
   }
-  .task-row > .task-name {
+  .task-row-main > .task-name {
     grid-area: task;
   }
-  .task-row > .status {
+  .task-row-main > .status {
     grid-area: state;
   }
-  .task-row > svg:last-child {
+  .task-row-main > svg:last-child {
     grid-area: arrow;
   }
   .table-head span:nth-child(2),
-  .task-row > span:nth-child(2) {
+  .task-row-main > span:nth-child(2) {
     display: none;
   }
   .table-head span:nth-child(3) {
@@ -2436,6 +2486,42 @@ dd {
   flex-shrink: 0;
   accent-color: var(--blue);
 }
+.relations-dialog {
+  margin: auto;
+  width: min(1080px, calc(100vw - 96px));
+  height: min(760px, calc(100dvh - 96px));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.relations-dialog .drawer-content {
+  height: calc(100% - 61px);
+  overflow: auto;
+}
+.relations-dialog .task-relations-page {
+  padding: 18px 22px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.relations-dialog .relations-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.relations-dialog .relations-viewport {
+  flex: 1;
+  height: auto;
+  min-height: 280px;
+}
+.relations-dialog .relation-keyboard-help {
+  display: none;
+}
 .task-drawer {
   position: fixed;
   inset: 0 0 0 auto;
@@ -2469,13 +2555,14 @@ dd {
   border-bottom: 1px solid var(--line);
   padding: 0 24px;
 }
-.drawer-header > span {
+.task-identity {
   display: flex;
   gap: 14px;
   align-items: center;
   font-size: 13px;
+  min-width: 0;
 }
-.drawer-header small {
+.task-identity small {
   color: var(--muted);
   font-size: 12px;
 }
@@ -4371,7 +4458,7 @@ button.origin-badge:hover > span {
 }
 .task-context-summary dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 5px;
 }
 .task-context-summary dd {
@@ -4816,7 +4903,7 @@ button.origin-badge:hover > span {
 }
 .task-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
 }
@@ -4824,16 +4911,12 @@ button.origin-badge:hover > span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.task-heading > button {
-  flex-shrink: 0;
-  margin-top: 22px;
-}
 .task-status-control {
   display: contents;
 }
 .task-status-select .reed-select-trigger {
-  min-height: 28px;
-  padding: 3px 8px;
+  min-height: 24px;
+  padding: 2px 8px;
   color: inherit;
   background: var(--soft);
   font-size: 12px;
@@ -4905,6 +4988,7 @@ button.origin-badge:hover > span {
   margin: 0;
 }
 .task-meta-line .type-tag {
+  border-color: transparent;
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -5055,24 +5139,55 @@ button.origin-badge:hover > span {
 }
 
 /* Task detail: one reading surface and one shared resource placement. */
+.save-failure-alert {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: 0 0 16px;
+}
 .detail-layout.task-detail {
   grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr) auto;
   background: var(--bg);
 }
+.task-page-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 12px 36px 10px;
+  border-top: 1px solid var(--line);
+}
+.task-page-footer .task-timestamps {
+  margin: 0;
+}
+.task-page-footer .save-state {
+  padding: 0;
+  min-height: 0;
+  border-top: 0;
+  font-size: 11px;
+}
+.task-page-footer .save-state small {
+  display: inline;
+  margin: 0 0 0 6px;
+  font-size: 10px;
+}
 .task-detail > .task-main {
-  padding: 28px 36px 40px;
+  padding: 20px 36px 32px;
 }
 .task-detail .task-heading h1 {
-  margin: 8px 0 14px;
-}
-.task-detail .task-heading > button {
-  margin-top: 10px;
+  margin: 6px 0 12px;
+  font-size: 22px;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
 }
 .task-detail .task-meta-line {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 .task-detail .detail-reading {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .task-detail .section-title {
   align-items: center;
@@ -5082,8 +5197,7 @@ button.origin-badge:hover > span {
   padding: 0;
   border: 0;
 }
-.task-detail .section-title h2,
-.task-detail .task-linked-resources > h2 {
+.task-detail .section-title h2 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
@@ -5095,6 +5209,10 @@ button.origin-badge:hover > span {
   margin: 0;
   padding: 20px 0;
   border-bottom: 1px solid var(--line);
+}
+.task-main > .task-flow-section:last-child,
+.task-support > .task-flow-section:last-child {
+  border-bottom: 0;
 }
 .task-detail .task-flow-section p {
   margin: 0 0 10px;
@@ -5147,7 +5265,6 @@ button.origin-badge:hover > span {
   padding: 28px 22px;
   overflow: auto;
   border-left: 1px solid var(--line);
-  background: var(--soft);
 }
 .task-support > .task-flow-section:first-child {
   padding-top: 0;
@@ -5155,10 +5272,6 @@ button.origin-badge:hover > span {
 .task-support .section-title {
   gap: 6px 10px;
   margin-bottom: 8px;
-}
-.task-support .task-flow-section,
-.task-support .task-context-section {
-  padding: 16px 0;
 }
 .task-support .task-context-summary {
   margin: 10px 0;
@@ -5179,9 +5292,6 @@ button.origin-badge:hover > span {
 }
 .task-support .task-relation-group:last-child .task-relation-summary:last-child {
   border-bottom: 0;
-}
-.task-linked-resources {
-  padding-top: 16px;
 }
 .task-resource-group {
   margin-top: 16px;
@@ -5231,13 +5341,6 @@ button.origin-badge:hover > span {
 .task-detail .task-completion-record p {
   margin: 0 0 6px;
 }
-.task-footer {
-  margin-top: 20px;
-  color: var(--muted);
-}
-.task-footer .task-timestamps {
-  margin: 0;
-}
 .task-drawer .detail-layout.task-detail {
   display: flex;
   flex-direction: column;
@@ -5248,9 +5351,13 @@ button.origin-badge:hover > span {
 .task-drawer .task-support {
   overflow: visible;
   margin: 0 32px 28px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.task-drawer .task-page-footer {
+  padding: 12px 0 0;
+  margin: 0 32px 28px;
 }
 @media (max-width: 1050px) {
   .detail-layout.task-detail {
@@ -5264,10 +5371,14 @@ button.origin-badge:hover > span {
   }
   .task-detail > .task-support {
     margin: 0 24px 24px;
-    padding: 18px 20px;
+    padding: 0;
     overflow: visible;
-    border: 1px solid var(--line);
-    border-radius: 8px;
+    border: 0;
+    border-radius: 0;
+  }
+  .task-detail > .task-page-footer {
+    padding: 12px 0 0;
+    margin: 0 24px 24px;
   }
 }
 @media (max-width: 650px) {
@@ -5278,7 +5389,11 @@ button.origin-badge:hover > span {
   .task-detail > .task-support,
   .task-drawer .task-support {
     margin: 0 18px 20px;
-    padding: 14px 16px;
+  }
+  .task-detail > .task-page-footer,
+  .task-drawer .task-page-footer {
+    padding: 12px 0 0;
+    margin: 0 18px 20px;
   }
   .task-detail .task-content .section-title {
     gap: 6px 10px;

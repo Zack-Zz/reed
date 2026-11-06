@@ -107,9 +107,15 @@ test('本地任务后补上下文仅改指定资料，原阶段、验收、会�
   assert.deepEqual(task.references, [
     { kind: 'link', name: '说明', location: 'https://example.test/new' },
   ]);
+  // 项目显示名与项目身份成对变更：新名称归属到真实项目。
+  assert.equal(
+    task.projectId,
+    updated.projects.find((project) => project.name === '新项目')?.id ?? null,
+  );
   const {
     title: _title,
     project: _project,
+    projectId: _projectId,
     description: _description,
     references: _references,
     updatedAt: _updatedAt,
@@ -118,6 +124,7 @@ test('本地任务后补上下文仅改指定资料，原阶段、验收、会�
   const {
     title: _oldTitle,
     project: _oldProject,
+    projectId: _oldProjectId,
     description: _oldDescription,
     references: _oldReferences,
     updatedAt: _oldUpdatedAt,
@@ -205,6 +212,8 @@ test('已有会话、工作区、分支或执行归属时拒绝换仓库，但�
   for (const mutate of mutations) {
     const state = create({ repo: 'repo-a' });
     mutate(state);
+    // 设备维度由 normalize 补默认值：先就地归一化，再取比较基线。
+    for (const session of state.sessions) session.originDeviceId ??= 'device-this';
     const before = structuredClone(state);
     assert.throws(
       () => act(state, 'UPDATE_TASK_CONTEXT', { repo: 'repo-b', title: '不应生效' }),

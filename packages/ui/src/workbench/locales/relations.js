@@ -19,6 +19,9 @@ export const relationMessages = {
     'Required child tasks and prerequisite results satisfy the agreed delivery scope',
   'relation.title': 'Task relationships',
   'relation.open': 'View relationships',
+  全屏查看: 'Open fullscreen',
+  关闭关系图: 'Close relationships',
+  在弹窗中打开: 'Open in dialog',
   'relation.subtitle': 'Break down the work. Keep every task’s scope and progress clear.',
   'relation.example': 'View example',
   'relation.exampleNote':

@@ -9,11 +9,14 @@ function detailScenario() {
   const runtime = createMockWorkbenchRuntime();
   const model: any = runtime.createInitialState();
   const task = model.tasks.find((item: any) => item.id === 'REQ-1042');
-  const render = () =>
+  const render = (saved = true) =>
     renderToStaticMarkup(
       <WorkbenchRuntimeProvider runtime={runtime}>
         <I18nProvider initialLocale="zh-CN">
-          <TaskDetail ctx={{ task, model, setModal: vi.fn(), go: vi.fn(), run: vi.fn() }} saved />
+          <TaskDetail
+            ctx={{ task, model, setModal: vi.fn(), go: vi.fn(), run: vi.fn(), openRelations: vi.fn() }}
+            saved={saved}
+          />
         </I18nProvider>
       </WorkbenchRuntimeProvider>,
     );
@@ -30,7 +33,7 @@ describe('task detail reading and resources', () => {
     expect(html).toContain(s.task.description);
     expect(html).toContain(s.task.goal);
     expect(html.indexOf(s.task.description)).toBeLessThan(html.indexOf(s.task.goal));
-    expect(html).toContain('任务类型：开发');
+    expect(html).toContain('<span class="type-tag">开发</span>');
     expect(html).toContain('P0');
     expect(html).toContain('负责人');
     expect(html).toContain('切换任务状态');
@@ -73,6 +76,56 @@ describe('task detail reading and resources', () => {
     expect(html).toContain('reed/evidence');
     expect(html).toContain('目录已核对');
     expect(html).toContain('查看全部关联');
+    expect(html).toContain('查看任务关系');
     expect(html).toContain('交给 Agent');
+  });
+
+  it('renders support modules through the same section primitive as reading modules', () => {
+    const s = detailScenario();
+    const html = s.render();
+    const aside = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'));
+
+    expect(aside).toContain('<h2>任务关系</h2>');
+    expect(aside).toContain('<h2>任务信息</h2>');
+    expect(aside).toContain('<h2>关联资源</h2>');
+    expect(aside).toContain('class="task-flow-section task-context-section"');
+    expect(aside).toContain('class="task-flow-section task-linked-resources"');
+  });
+
+  it('keeps timestamps and save state at the page end after the support modules', () => {
+    const s = detailScenario();
+    const html = s.render();
+    const asideEnd = html.indexOf('</aside>');
+
+    expect(asideEnd).toBeGreaterThan(-1);
+    expect(html.indexOf('创建于')).toBeGreaterThan(asideEnd);
+    expect(html.indexOf('本地已保存')).toBeGreaterThan(asideEnd);
+  });
+
+  it('keeps the form switch in the window chrome instead of the content heading', () => {
+    const s = detailScenario();
+    const html = s.render();
+    expect(html).not.toContain('aria-label="在抽屉中打开"');
+    expect(html).not.toContain('aria-label="打开完整任务页面"');
+  });
+
+  it('shows the task identity only in the window chrome, not in breadcrumb or meta line', () => {
+    const s = detailScenario();
+    const html = s.render();
+    expect(html).not.toContain('<span>/</span><span>REQ-1042</span>');
+    expect(html).not.toContain('<span>成员中心</span>');
+  });
+
+  it('pins a save failure alert above the reading content until saving recovers', () => {
+    const s = detailScenario();
+    const failing = s.render(false);
+
+    const alertIndex = failing.indexOf('save-failure-alert');
+    expect(alertIndex).toBeGreaterThan(-1);
+    expect(failing).toContain('role="alert"');
+    expect(failing).toContain('保存失败，内容暂留内存');
+    expect(alertIndex).toBeLessThan(failing.indexOf('task-heading'));
+
+    expect(s.render(true)).not.toContain('save-failure-alert');
   });
 });

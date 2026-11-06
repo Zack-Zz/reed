@@ -113,10 +113,81 @@ const nextId = (items, prefix) => {
   return `${prefix}-${number}`;
 };
 const stamp = () => new Date().toISOString();
+// 项目工作区建模：项目聚合一组本地目录，git 目录即工程并持有分支；
+// Agent 工作区是各 Agent 侧的项目记录，靠共享目录收敛到同一项目。
+const MEMBER_PROJECT_ID = 'project-member-center';
+const MEMBER_SERVICE_DIR_ID = 'dir-member-service';
+const MEMBER_DOCS_DIR_ID = 'dir-member-docs';
+const MEMBER_SERVICE_PATH = '/Users/demo/work/member-center/member-service';
+const DEFAULT_AGENTS = [
+  { id: 'codex', name: 'Codex' },
+  { id: 'claude-code', name: 'Claude Code' },
+  { id: 'zcode', name: 'ZCode' },
+];
+// 设备维度：会话与 Agent 工作区都归属于某台机器；本机之外的设备由云端同步阶段注册。
+const DEVICES = [
+  { id: 'device-this', name: '本机', isLocal: true },
+  { id: 'device-mbp', name: 'MacBook Pro', isLocal: false },
+];
+export const workspaceModel = { DEFAULT_AGENTS, DEVICES, MEMBER_PROJECT_ID };
+const normalizeDirectoryPath = (path) =>
+  String(path ?? '')
+    .trim()
+    .replace(/\/+$/, '');
+const directoryBaseName = (path) =>
+  normalizeDirectoryPath(path).split('/').filter(Boolean).at(-1) ?? '';
+// 目录类型模拟判定：用户只给路径，是否 Git 工程由系统识别；真实判定归 Core 的文件系统适配器。
+const detectDirectoryKind = (path) => {
+  const name = directoryBaseName(path).toLowerCase();
+  return /(docs|notes|文档|资料|assets|materials)$/.test(name) ? 'plain' : 'git';
+};
+// 仓库显示名解析为任务所属项目内的 git 目录身份；空名、跨项目或歧义时不猜。
+const resolveGitDirectoryId = (state, projectId, repo) => {
+  if (!projectId || !repo) return null;
+  const matches = state.directories.filter(
+    (item) => item.kind === 'git' && item.projectId === projectId && item.name === repo,
+  );
+  return matches.length === 1 ? matches[0].id : null;
+};
+// 本地任务以新名称归属时建立真实项目；项目名全局唯一。
+const ensureProject = (state, name) => {
+  const existing = state.projects.find((item) => item.name === name);
+  if (existing) return existing;
+  const project = { id: nextId(state.projects, 'project'), name };
+  state.projects.push(project);
+  return project;
+};
+// 会话绑定宿主时，确保该 Agent 在任务所属项目中有已关联的工作区。
+const resolveAgentWorkspace = (state, hostName, task) => {
+  const agent = state.agents.find((item) => item.name === hostName);
+  const project = state.projects.find(
+    (item) => item.id === (task.projectId ?? null) || item.name === task.project,
+  );
+  if (!agent || !project) return null;
+  const existing = state.agentWorkspaces.find(
+    (item) =>
+      item.status === 'linked' && item.projectId === project.id && item.agentId === agent.id,
+  );
+  if (existing) return existing.id;
+  const created = {
+    id: nextId(state.agentWorkspaces, 'ws'),
+    projectId: project.id,
+    agentId: agent.id,
+    agentSideName: project.name,
+    deviceId: 'device-this',
+    status: 'linked',
+    directoryIds: state.directories
+      .filter((item) => item.projectId === project.id && item.kind === 'git')
+      .map((item) => item.id),
+  };
+  state.agentWorkspaces.push(created);
+  return created.id;
+};
 const blankTask = (id, title, project = '成员中心') => ({
   id,
   title,
   project,
+  projectId: MEMBER_PROJECT_ID,
   source: '本地',
   origin: { kind: 'local', system: 'reed' },
   stage: null,
@@ -286,6 +357,77 @@ export function createInitialState() {
   };
   let initial = normalizeState({
     connectors: [createDemoConnector()],
+    devices: structuredClone(DEVICES),
+    projects: [{ id: MEMBER_PROJECT_ID, name: '成员中心' }],
+    directories: [
+      {
+        id: MEMBER_SERVICE_DIR_ID,
+        projectId: MEMBER_PROJECT_ID,
+        path: MEMBER_SERVICE_PATH,
+        name: 'member-service',
+        kind: 'git',
+      },
+      {
+        id: MEMBER_DOCS_DIR_ID,
+        projectId: MEMBER_PROJECT_ID,
+        path: '/Users/demo/work/member-center/docs',
+        name: 'docs',
+        kind: 'plain',
+      },
+    ],
+    agents: structuredClone(DEFAULT_AGENTS),
+    agentWorkspaces: [
+      {
+        id: 'ws-codex-member-center',
+        projectId: MEMBER_PROJECT_ID,
+        agentId: 'codex',
+        agentSideName: 'member-center',
+        deviceId: 'device-this',
+        status: 'linked',
+        directoryIds: [MEMBER_SERVICE_DIR_ID, MEMBER_DOCS_DIR_ID],
+      },
+      {
+        id: 'ws-claude-member-center',
+        projectId: MEMBER_PROJECT_ID,
+        agentId: 'claude-code',
+        agentSideName: '成员服务',
+        deviceId: 'device-this',
+        status: 'linked',
+        directoryIds: [MEMBER_SERVICE_DIR_ID],
+      },
+      {
+        id: 'ws-codex-mbp',
+        projectId: MEMBER_PROJECT_ID,
+        agentId: 'codex',
+        agentSideName: 'member-center',
+        deviceId: 'device-mbp',
+        status: 'linked',
+        directoryIds: [MEMBER_SERVICE_DIR_ID],
+      },
+      {
+        id: 'ws-zcode-cleanup',
+        projectId: null,
+        agentId: 'zcode',
+        agentSideName: 'member-center-cleanup',
+        deviceId: 'device-this',
+        status: 'candidate',
+        directoryIds: [],
+        paths: [
+          { path: MEMBER_SERVICE_PATH, kind: 'git' },
+          { path: '/Users/demo/work/member-center/notes', kind: 'plain' },
+        ],
+      },
+      {
+        id: 'ws-codex-infra',
+        projectId: null,
+        agentId: 'codex',
+        agentSideName: 'infra-scripts',
+        deviceId: 'device-this',
+        status: 'candidate',
+        directoryIds: [],
+        paths: [{ path: '/Users/demo/work/infra/scripts', kind: 'git' }],
+      },
+    ],
     tasks: [primary, waiting, failed, running, idle, design].map((task, index) => ({
       ...task,
       createdAt: new Date(Date.UTC(2026, 9, 30, 9, index)).toISOString(),
@@ -313,6 +455,8 @@ export function createInitialState() {
     sessions: [
       {
         id: 'session-requirement',
+        originDeviceId: 'device-this',
+        agentWorkspaceId: 'ws-codex-member-center',
         title: '成员导入 · 需求梳理',
         host: 'Codex',
         taskId: primary.id,
@@ -323,6 +467,8 @@ export function createInitialState() {
       },
       {
         id: 'session-design',
+        originDeviceId: 'device-this',
+        agentWorkspaceId: 'ws-codex-member-center',
         title: '成员导入 · 补偿设计',
         host: 'Codex',
         taskId: primary.id,
@@ -332,7 +478,21 @@ export function createInitialState() {
         verified: true,
       },
       {
+        id: 'session-mbp-review',
+        originDeviceId: 'device-mbp',
+        agentWorkspaceId: 'ws-codex-mbp',
+        title: '补偿方案 · 交叉评审',
+        host: 'Codex',
+        taskId: primary.id,
+        stage: 1,
+        status: 'ended',
+        branch: '',
+        verified: true,
+      },
+      {
         id: 'session-wait',
+        originDeviceId: 'device-this',
+        agentWorkspaceId: 'ws-claude-member-center',
         title: '邀请成员 · 规则确认',
         host: 'Claude Code',
         taskId: waiting.id,
@@ -343,6 +503,8 @@ export function createInitialState() {
       },
       {
         id: 'session-verify',
+        originDeviceId: 'device-this',
+        agentWorkspaceId: 'ws-codex-member-center',
         title: '权限刷新 · 验证',
         host: 'Codex',
         taskId: failed.id,
@@ -353,6 +515,8 @@ export function createInitialState() {
       },
       {
         id: 'session-develop',
+        originDeviceId: 'device-this',
+        agentWorkspaceId: 'ws-codex-member-center',
         title: '机构筛选 · 开发',
         host: 'Codex',
         taskId: running.id,
@@ -364,7 +528,19 @@ export function createInitialState() {
     ],
     branches: [
       {
+        id: 'branch-main',
+        directoryId: MEMBER_SERVICE_DIR_ID,
+        repo: primary.repo,
+        name: 'main',
+        path: MEMBER_SERVICE_PATH,
+        taskId: null,
+        sessionId: null,
+        status: 'ended',
+        pr: null,
+      },
+      {
         id: 'branch-1039',
+        directoryId: MEMBER_SERVICE_DIR_ID,
         repo: failed.repo,
         name: failed.workspace.branch,
         path: failed.workspace.path,
@@ -375,6 +551,7 @@ export function createInitialState() {
       },
       {
         id: 'branch-1040',
+        directoryId: MEMBER_SERVICE_DIR_ID,
         repo: running.repo,
         name: running.workspace.branch,
         path: running.workspace.path,
@@ -652,6 +829,130 @@ export function reduce(state, action) {
     return reduce(created, { ...action, type: 'LINK_TASK', targetTaskId: child.id });
   }
   if (action.type === 'ADD_RELATION_EXAMPLES') return addRelationExamples(next);
+  if (action.type === 'CREATE_PROJECT') {
+    const name = text(action.name, '项目名称').trim();
+    requireThat(name.length > 0, '项目名称不能为空');
+    requireThat(!next.projects.some((item) => item.name === name), '同名项目已存在');
+    next.projects.push({ id: nextId(next.projects, 'project'), name });
+    return next;
+  }
+  if (action.type === 'RENAME_PROJECT') {
+    const project = next.projects.find((item) => item.id === action.projectId);
+    requireThat(project, '项目不存在');
+    const name = text(action.name, '项目名称').trim();
+    requireThat(name.length > 0, '项目名称不能为空');
+    requireThat(
+      !next.projects.some((item) => item.id !== project.id && item.name === name),
+      '同名项目已存在',
+    );
+    const previousName = project.name;
+    project.name = name;
+    for (const task of next.tasks) if (task.project === previousName) task.project = name;
+    return next;
+  }
+  if (action.type === 'ADD_DIRECTORY') {
+    const project = next.projects.find((item) => item.id === action.projectId);
+    requireThat(project, '项目不存在');
+    const path = normalizeDirectoryPath(text(action.path, '目录路径'));
+    requireThat(path.length > 0, '目录路径不能为空');
+    requireThat(!next.directories.some((item) => item.path === path), '该目录已在工作区中');
+    const kind = action.kind === undefined ? detectDirectoryKind(path) : (action.kind ?? 'git');
+    requireThat(['git', 'plain'].includes(kind), '目录类型必须是 git 或普通目录');
+    const directory = {
+      id: nextId(next.directories, 'dir'),
+      projectId: project.id,
+      path,
+      name: directoryBaseName(path),
+      kind,
+    };
+    next.directories.push(directory);
+    // 每个 git 工程都具备主干分支。
+    if (directory.kind === 'git')
+      next.branches.push({
+        id: nextId(next.branches, 'branch'),
+        directoryId: directory.id,
+        repo: directory.name,
+        name: 'main',
+        path,
+        taskId: null,
+        sessionId: null,
+        status: 'ended',
+        pr: null,
+      });
+    return next;
+  }
+  if (action.type === 'IGNORE_AGENT_WORKSPACE') {
+    const workspace = next.agentWorkspaces.find((item) => item.id === action.workspaceId);
+    requireThat(workspace, 'Agent 工作区不存在');
+    requireThat(workspace.status === 'candidate', '只有待关联的候选工作区可以忽略');
+    workspace.status = 'ignored';
+    return next;
+  }
+  if (action.type === 'LINK_AGENT_WORKSPACE' || action.type === 'PROMOTE_WORKSPACE_PROJECT') {
+    const workspace = next.agentWorkspaces.find((item) => item.id === action.workspaceId);
+    requireThat(workspace, 'Agent 工作区不存在');
+    requireThat(workspace.status === 'candidate', '该工作区已处理过');
+    let newProject = null;
+    if (action.type === 'PROMOTE_WORKSPACE_PROJECT') {
+      // 自有名称优先，缺省时借用 Agent 侧名称。
+      const name =
+        (typeof action.name === 'string' ? action.name.trim() : '') || workspace.agentSideName;
+      requireThat(name.length > 0, '项目名称不能为空');
+      requireThat(!next.projects.some((item) => item.name === name), '同名项目已存在');
+      newProject = { id: nextId(next.projects, 'project'), name };
+    }
+    const projectId = newProject?.id ?? action.projectId ?? null;
+    const project = newProject ?? next.projects.find((item) => item.id === projectId);
+    requireThat(project, '项目不存在');
+    const entries = (workspace.paths ?? []).map((entry) => ({
+      path: normalizeDirectoryPath(entry.path ?? entry),
+      kind: entry.kind === 'plain' ? 'plain' : 'git',
+    }));
+    // 目录单归属：先整体校验全部路径，任一已属于其他项目即整体失败；
+    // 校验通过后才创建项目与目录，不做部分关联，也不返回伪成功。
+    for (const entry of entries) {
+      requireThat(entry.path.length > 0, '目录路径不能为空');
+      const existing = next.directories.find((item) => item.path === entry.path);
+      requireThat(
+        !existing || existing.projectId === project.id,
+        '目录已属于其他项目，不能关联到该项目',
+      );
+    }
+    if (newProject) next.projects.push(newProject);
+    const resolved = [];
+    for (const entry of entries) {
+      const existing = next.directories.find((item) => item.path === entry.path);
+      if (existing) {
+        resolved.push(existing.id);
+        continue;
+      }
+      const directory = {
+        id: nextId(next.directories, 'dir'),
+        projectId: project.id,
+        path: entry.path,
+        name: directoryBaseName(entry.path),
+        kind: entry.kind,
+      };
+      next.directories.push(directory);
+      if (directory.kind === 'git')
+        next.branches.push({
+          id: nextId(next.branches, 'branch'),
+          directoryId: directory.id,
+          repo: directory.name,
+          name: 'main',
+          path: directory.path,
+          taskId: null,
+          sessionId: null,
+          status: 'ended',
+          pr: null,
+        });
+      resolved.push(directory.id);
+    }
+    workspace.directoryIds = resolved;
+    workspace.projectId = project.id;
+    workspace.status = 'linked';
+    return next;
+  }
   if (['CREATE_TASK', 'IMPORT_TASK'].includes(action.type)) {
     const externalId =
       action.type === 'IMPORT_TASK' ? text(action.externalId, '云效工作项编号') : null;
@@ -678,6 +979,12 @@ export function reduce(state, action) {
       'task.invalid-type',
     );
     const task = blankTask(nextId(next.tasks, externalId ? 'IMPORTED' : 'LOCAL'), title, project);
+    // 本地任务允许以新名称建项；导入任务沿用来源项目名，不反向建项。
+    task.projectId = project
+      ? externalId
+        ? (next.projects.find((item) => item.name === project)?.id ?? null)
+        : ensureProject(next, project).id
+      : null;
     task.taskType = action.taskType || 'uncategorized';
     const selected = selectWorkflow(next, action.templateId, action.templateVersion);
     if (selected) {
@@ -690,6 +997,8 @@ export function reduce(state, action) {
     if (context) {
       Object.assign(task, context);
       task.workspace.origin.repo = context.repo;
+      // 创建即解析目录身份，不留给下一次 normalize 按显示名猜测。
+      task.workspace.directoryId = resolveGitDirectoryId(next, task.projectId, context.repo);
     }
     if (externalId)
       Object.assign(task, {
@@ -726,17 +1035,29 @@ export function reduce(state, action) {
     });
     const title = action.title === undefined ? task.title : text(action.title, '任务标题');
     const updatedAt = task.updatedAt;
+    const projectChanged = context.project !== (task.project || '');
+    const repoChanged = context.repo !== task.repo;
     const contextChanged =
-      context.project !== (task.project || '') ||
-      context.repo !== (task.repo || '') ||
+      projectChanged ||
+      repoChanged ||
       JSON.stringify(context.references) !== JSON.stringify(task.references || []);
-    if (context.repo !== task.repo) {
+    // 归属身份与显示名同步：项目名变化即迁移 projectId；目录身份随项目或仓库变化在
+    // 任务所属项目范围内重解，保证后续操作和重载后镜像一致。
+    if (projectChanged)
+      task.projectId = context.project ? ensureProject(next, context.project).id : null;
+    const directoryId =
+      projectChanged || repoChanged
+        ? resolveGitDirectoryId(next, task.projectId, context.repo)
+        : (task.workspace.directoryId ?? null);
+    // 同名仓库也可能是不同目录；更换项目不能绕过已有执行资源的换仓保护。
+    if (repoChanged || directoryId !== (task.workspace.directoryId ?? null)) {
       requireThat(
         !hasRepositoryRelations(next, task) || canLinkFirstRepository(next, task),
         '已关联会话、工作区或执行记录，不能更换仓库',
       );
-      task.workspace.origin.repo = context.repo;
     }
+    if (repoChanged) task.workspace.origin.repo = context.repo;
+    if (projectChanged || repoChanged) task.workspace.directoryId = directoryId;
     if (
       title !== task.title ||
       context.description !== (task.description || '') ||
@@ -995,6 +1316,11 @@ export function reduce(state, action) {
       assertActive(task);
       assertKnownIdle(task);
       const host = text(action.host, 'Agent 宿主');
+      // 只允许接入已注册宿主；未注册宿主会产生无归属的孤立会话。
+      requireThat(
+        next.agents.some((item) => item.name === host),
+        '宿主尚未注册为可接入宿主',
+      );
       const branch = next.branches.find(
         (item) =>
           item.taskId === task.id &&
@@ -1007,8 +1333,10 @@ export function reduce(state, action) {
       if (current && current.status === 'idle') current.status = 'ended';
       const newSession = {
         id: nextId(next.sessions, 'session'),
+        originDeviceId: 'device-this',
         title: `${task.title} · ${task.workflow ? workflowStepName(task) : '任务处理'}`,
         host,
+        agentWorkspaceId: resolveAgentWorkspace(next, host, task),
         taskId: task.id,
         stage: task.stage,
         stepName: workflowStepName(task),
@@ -1220,19 +1548,25 @@ function addRelationExamples(state) {
   attach(root, document, 'related');
   const sample = next.tasks.find((task) => task.id === backend);
   sample.repo = 'member-service';
+  // 示例任务属于独立示例项目：保留仓库展示与分支引用，不伪造跨项目目录身份。
   sample.workspace = {
     ready: true,
     verified: true,
     path: '/workspace/reed/import-compensation',
     branch: 'reed/import-compensation',
+    directoryId: null,
     origin: { kind: 'local', system: 'git', repo: 'member-service' },
   };
   const sessionId = nextId(next.sessions, 'session');
   sample.sessionIds.push(sessionId);
   next.sessions.push({
     id: sessionId,
+    originDeviceId: 'device-this',
     title: '成员补偿 · 方案讨论',
     taskId: backend,
+    // 传入任务对象而非 id；示例任务随项目建模获得工作区归属。
+    agentWorkspaceId: resolveAgentWorkspace(next, 'Codex', sample),
+    host: 'Codex',
     host: 'Codex',
     stage: null,
     status: 'ended',
@@ -1242,6 +1576,7 @@ function addRelationExamples(state) {
   next.branches.push({
     id: nextId(next.branches, 'branch'),
     taskId: backend,
+    directoryId: MEMBER_SERVICE_DIR_ID,
     repo: sample.repo,
     name: sample.workspace.branch,
     path: sample.workspace.path,
